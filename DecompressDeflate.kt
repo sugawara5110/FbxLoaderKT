@@ -344,7 +344,7 @@ class DecompressDeflate {
         return curSearchBit
     }
 
-    fun DecompressHuffman(
+    private fun DecompressHuffman(
         CurSearchBit: Long,
         byteArray: ByteArray,
         OutIndex: Int,
@@ -408,7 +408,7 @@ class DecompressDeflate {
         return Triple(curSearchBit, outIndex, outArray)
     }
 
-    fun Uncompress(
+    private fun Uncompress(
         CurSearchBit: Long,
         byteArray: ByteArray,
         OutIndex: Int,
@@ -436,11 +436,11 @@ class DecompressDeflate {
         return Triple(curSearchBit, outIndex, outArray)
     }
 
-    fun blockFinal(curSearchBit: Long, byteArray: ByteArray): Pair<Long, Short> {
+    private fun blockFinal(curSearchBit: Long, byteArray: ByteArray): Pair<Long, Short> {
         return getBit(curSearchBit, byteArray, 1, true)
     }
 
-    fun blockType(curSearchBit: Long, byteArray: ByteArray): Pair<Long, Short> {
+    private fun blockType(curSearchBit: Long, byteArray: ByteArray): Pair<Long, Short> {
         return getBit(curSearchBit, byteArray, 2, true)
     }
 
