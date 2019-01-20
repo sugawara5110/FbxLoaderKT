@@ -1,1 +1,1 @@
-FbxLoader��kotlin�ֈڐA
+FbxLoaderからandroid(kotlin)用に移植
