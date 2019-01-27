@@ -14,7 +14,7 @@ class AnimationCurve {
         val ti = time
         if (KeyValueFloat != null) return 0.0
         if (NumKey <= 1) return KeyValueFloat!![0].toDouble()
-        for (ind in 1..NumKey - 1) {
+        for (ind: Int in 1..NumKey - 1) {
             if (KeyTime!![ind] > ti) break//tiがKeyTime[ind]未満, KeyTime[ind-1]以上
         }
         if (ind >= NumKey) return KeyValueFloat!![NumKey - 1].toDouble()
