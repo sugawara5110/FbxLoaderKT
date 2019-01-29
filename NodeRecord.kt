@@ -14,11 +14,6 @@ class ConnectionList {
     var ParentID: Long = -1
 }
 
-fun convertBYTEtoUINT(fileStr:CharArray?, arrayInd:Int):UInt {
-    return ((fileStr!![3 + arrayInd].toInt() shl 24) or (fileStr!![2 + arrayInd].toInt() shl 16) or
-            (fileStr!![1 + arrayInd].toInt() shl 8) or (fileStr!![0 + arrayInd].toInt())).toUInt()
-}
-
 fun convertUCHARtoUINT(arr:CharArray?,arrInd:Int):UInt {
     return ((arr!![3 + arrInd].toInt() shl 24) or (arr!![2 + arrInd].toInt() shl 16) or
             (arr!![1 + arrInd].toInt() shl 8) or (arr!![0 + arrInd].toInt())).toUInt()
@@ -76,10 +71,10 @@ class NodeRecord {
 
     var nodeName: Array<CharArray?> = arrayOfNulls(NUMNODENAME)
     var NumChildren: Int = 0
-    var nodeChildren: ArrayList<NodeRecord?> = arrayListOf()//{}内のノード, NodeRecord配列用(.add(要素)で追加)
+    var nodeChildren: Array<NodeRecord?>? = null//{}内のノード, NodeRecord配列用
 
     var thisConnectionID: Long = -1
-    var connectionNode: ArrayList<NodeRecord?> = arrayListOf() //NodeRecord接続用
+    var connectionNode: ArrayList<NodeRecord?> = arrayListOf() //NodeRecord接続用(.add(要素)で追加)
 
     fun searchName_Type(cn: ArrayList<ConnectionNo>) {
         var swt = 0
@@ -172,5 +167,62 @@ class NodeRecord {
             }
             loop++
         }
+    }
+
+    fun createConnectionList(cnLi: ArrayList<ConnectionList>) {
+        var cl: ConnectionList = ConnectionList()
+        //S len "OO" L 計8byteの次にChildID
+        cl.ChildID = convertUCHARtoint64(Property, 8)
+        //L 1byteの次にParentID
+        cl.ParentID = convertUCHARtoint64(Property, 17)
+        cnLi.add(cl)
+    }
+
+    fun set(fp: FilePointer, cn: ArrayList<ConnectionNo>, cnLi: ArrayList<ConnectionList>) {
+        EndOffset = fp.convertBYTEtoUINT()
+        NumProperties = fp.convertBYTEtoUINT().toInt()
+        PropertyListLen = fp.convertBYTEtoUINT().toInt()
+        classNameLen = fp.getByte().toInt()
+        className = CharArray(classNameLen)
+        for (i in 0..classNameLen - 1) {
+            className!!.set(i, fp.getByte().toChar())
+        }
+        if (PropertyListLen > 0) {
+            Property = CharArray(PropertyListLen)
+            for (i in 0..PropertyListLen - 1) {
+                Property!!.set(i, fp.getByte().toChar())
+            }
+            searchName_Type(cn);
+            if (0 == className.toString().compareTo("C") &&
+                (0 == nodeName[0].toString().compareTo("OO") ||
+                        0 == nodeName[0].toString().compareTo("OP"))
+            ) {
+                createConnectionList(cnLi);
+            }
+        }
+
+        val curpos = fp.getPos()
+        //現在のファイルポインタがEndOffsetより手前,かつ
+        //現ファイルポインタから4byteが全て0ではない場合, 子ノード有り
+        if (EndOffset > curpos.toUInt() && fp.convertBYTEtoUINT() != 0u) {
+            var topChildPointer = curpos.toUInt()
+            var childEndOffset = 0u
+            //子ノードEndOffsetをたどり,個数カウント
+            do {
+                fp.seekPointer(fp.getPos() - 4)//"convertBYTEtoUINT(fp) != 0"の分戻す
+                NumChildren++;
+                childEndOffset = fp.convertBYTEtoUINT()
+                fp.seekPointer(childEndOffset.toInt())
+            } while (EndOffset > childEndOffset && fp.convertBYTEtoUINT() != 0u)
+            //カウントが終わったので最初の子ノードのファイルポインタに戻す
+            fp.seekPointer(topChildPointer.toInt())
+            nodeChildren = arrayOfNulls(NumChildren)
+            for (i in 0..NumChildren - 1) {
+                nodeChildren!![i] = NodeRecord()
+                nodeChildren!![i]!!.set(fp, cn, cnLi)
+            }
+        }
+        //読み込みが終了したのでEndOffsetへポインタ移動
+        fp.seekPointer(EndOffset.toInt())
     }
 }
