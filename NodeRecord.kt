@@ -1,7 +1,5 @@
 package jp.sugasato.fbxloaderkt
 
-import kotlin.math.pow
-
 class ConnectionNo {
 
     var ConnectionID: Long = -1
@@ -14,50 +12,6 @@ class ConnectionList {
     var ParentID: Long = -1
 }
 
-fun convertUCHARtoUINT(arr:CharArray?,arrInd:Int):UInt {
-    return ((arr!![3 + arrInd].toInt() shl 24) or (arr!![2 + arrInd].toInt() shl 16) or
-            (arr!![1 + arrInd].toInt() shl 8) or (arr!![0 + arrInd].toInt())).toUInt()
-}
-
-fun convertUCHARtoINT32(arr:CharArray?,arrInd:Int):Int {
-    return (arr!![3 + arrInd].toInt() shl 24) or (arr!![2 + arrInd].toInt() shl 16) or
-            (arr!![1 + arrInd].toInt() shl 8) or (arr!![0 + arrInd].toInt())
-}
-
-fun convertUCHARtoint64(arr:CharArray?,arrInd:Int):Long {
-    return (arr!![7 + arrInd].toLong() shl 56) or (arr!![6 + arrInd].toLong() shl 48) or
-            (arr!![5 + arrInd].toLong() shl 40) or (arr!![4 + arrInd].toLong() shl 32) or
-            (arr!![3 + arrInd].toLong() shl 24) or (arr!![2 + arrInd].toLong() shl 16) or
-            (arr!![1 + arrInd].toLong() shl 8) or (arr!![0 + arrInd].toLong())
-}
-
-fun convertUCHARtoUINT64(arr:CharArray?,arrInd:Int):ULong {
-    return ((arr!![7 + arrInd].toLong()).toULong() shl 56) or ((arr!![6 + arrInd].toLong()).toULong() shl 48) or
-            ((arr!![5 + arrInd].toLong()).toULong() shl 40) or ((arr!![4 + arrInd].toLong()).toULong() shl 32) or
-            ((arr!![3 + arrInd].toLong()).toULong() shl 24) or ((arr!![2 + arrInd].toLong()).toULong() shl 16) or
-            ((arr!![1 + arrInd].toLong()).toULong() shl 8) or ((arr!![0 + arrInd].toLong()).toULong())
-}
-
-fun convertUCHARtoDouble(arr:CharArray?,arrInd:Int):Double {
-    //(-1)S × (1 + M) × 2E
-    //S = 符号部(1bit), E = 指数部(11bit), M = 仮数部(52bit)
-    val sign = -1 * (arr!![7 + arrInd].toInt() shr 7 and 0x01)//1bit
-    val exponent = ((arr!![7 + arrInd].toInt() shl 8) or (arr!![6 + arrInd].toInt())) shr 4 and 0x7ff//11bit
-    val fraction =
-        (((arr!![6 + arrInd].toLong()).toULong() shl 48) or ((arr!![5 + arrInd].toLong()).toULong() shl 40) or
-                ((arr!![4 + arrInd].toLong()).toULong() shl 32) or ((arr!![3 + arrInd].toLong()).toULong() shl 24) or
-                ((arr!![2 + arrInd].toLong()).toULong() shl 16) or ((arr!![1 + arrInd].toLong()).toULong() shl 8) or
-                ((arr!![0 + arrInd].toLong()).toULong()))
-    var sumfra = 0.0
-    var siftfra = fraction
-    for (i: Int in 52..1 step -1) {
-        val iDou: Double = i.toDouble()
-        sumfra += ((siftfra and 0x01u).toInt()).toDouble() * 2.0.pow(-iDou)
-        siftfra = siftfra shr 1
-    }
-    return sign * (1.0 + sumfra) * 2.0.pow(exponent)
-}
-
 class NodeRecord {
 
     val NUMNODENAME = 10
@@ -67,7 +21,7 @@ class NodeRecord {
     var PropertyListLen: Int = 0//プロパティリストの大きさ(byte)
     var classNameLen = 0
     var className: CharArray? = null
-    var Property: CharArray? = null//(型type, そのdataの順で並んでる) * プロパティの数
+    var Property: UByteArray? = null//(型type, そのdataの順で並んでる) * プロパティの数
 
     var nodeName: Array<CharArray?> = arrayOfNulls(NUMNODENAME)
     var NumChildren: Int = 0
@@ -76,7 +30,7 @@ class NodeRecord {
     var thisConnectionID: Long = -1
     var connectionNode: ArrayList<NodeRecord?> = arrayListOf() //NodeRecord接続用(.add(要素)で追加)
 
-    fun searchName_Type(cn: ArrayList<ConnectionNo>) {
+    fun searchName_Type(cn: ArrayList<ConnectionNo?>) {
         var swt = 0
         var ln = 0
         var nameNo = 0
@@ -104,7 +58,7 @@ class NodeRecord {
                 }
                 2 -> {
                     for (i in 0..ln - 1) {
-                        nodeName[nameNo]!!.set(i, Property!![loop + i])
+                        nodeName[nameNo]!!.set(i, Property!![loop + i].toByte().toChar())
                     }
                     nameNo++
                     if (nameNo >= NUMNODENAME) return
@@ -124,13 +78,13 @@ class NodeRecord {
                     }
                 }
                 0 -> {
-                    if (Property!![loop] == 'S') {
+                    if (Property!![loop].toByte().toChar() == 'S') {
                         swt = 1;
                     }
-                    if (Property!![loop] == 'L') {
+                    if (Property!![loop].toByte().toChar() == 'L') {
                         swt = 3;
                     }
-                    var sw = Property!![loop]
+                    val sw = Property!![loop].toByte().toChar()
                     if (sw == 'C') loop++;
                     if (sw == 'Y') loop += 2
                     if (sw == 'I' || sw == 'F') loop += 4
@@ -169,7 +123,7 @@ class NodeRecord {
         }
     }
 
-    fun createConnectionList(cnLi: ArrayList<ConnectionList>) {
+    fun createConnectionList(cnLi: ArrayList<ConnectionList?>) {
         var cl: ConnectionList = ConnectionList()
         //S len "OO" L 計8byteの次にChildID
         cl.ChildID = convertUCHARtoint64(Property, 8)
@@ -178,7 +132,7 @@ class NodeRecord {
         cnLi.add(cl)
     }
 
-    fun set(fp: FilePointer, cn: ArrayList<ConnectionNo>, cnLi: ArrayList<ConnectionList>) {
+    fun set(fp: FilePointer, cn: ArrayList<ConnectionNo?>, cnLi: ArrayList<ConnectionList?>) {
         EndOffset = fp.convertBYTEtoUINT()
         NumProperties = fp.convertBYTEtoUINT().toInt()
         PropertyListLen = fp.convertBYTEtoUINT().toInt()
@@ -188,9 +142,9 @@ class NodeRecord {
             className!!.set(i, fp.getByte().toChar())
         }
         if (PropertyListLen > 0) {
-            Property = CharArray(PropertyListLen)
+            Property = UByteArray(PropertyListLen)
             for (i in 0..PropertyListLen - 1) {
-                Property!!.set(i, fp.getByte().toChar())
+                Property!!.set(i, fp.getByte().toUByte())
             }
             searchName_Type(cn);
             if (0 == className.toString().compareTo("C") &&

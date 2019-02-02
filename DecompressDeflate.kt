@@ -379,7 +379,7 @@ class DecompressDeflate {
                         val pair = getLength(va.toShort())
                         var MatchLen = pair.first.toUInt() //取り出した一致長
                         val bitlen = pair.second.toByte()
-                        val pair1 = getBit(curSearchBit, byteArray, bitlen, true);//拡張ビット読み込み,数値なのでリトルエンディアン
+                        val pair1 = getBit(curSearchBit, byteArray, bitlen, true)//拡張ビット読み込み,数値なのでリトルエンディアン
                         curSearchBit = pair1.first
                         val outExpansionBit = pair.second
                         MatchLen += outExpansionBit//拡張ビット有った場合, 一致長に足す
