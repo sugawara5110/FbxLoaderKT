@@ -1,5 +1,8 @@
 package jp.sugasato.fbxloaderkt
 
+import android.content.Context
+import android.util.Log
+
 class FbxLoader {
 
     val Kaydara_FBX_binary = 18
@@ -20,22 +23,18 @@ class FbxLoader {
         val str2: CharArray = str1.toCharArray()
 
         var missCnt = 0
-        var strCnt = 0
-        for (i in 0..Kaydara_FBX_binary + 1) {
-            if (fp.getByte() != str2[strCnt].toByte()) {
+        for (i in 0..Kaydara_FBX_binary - 1) {
+            if (fp.getByte() != str2[i].toByte().toUByte()) {
                 missCnt++;
                 if (missCnt > 3) {
-                    //ソフトによってスペルミスが有るのでとりあえず3文字以上異なる場合falseにする
-                    //別ファイルの場合ほぼ全数当てはまらないはず
                     return false
                 }
             }
-            strCnt++
         }
         //0-20バイト 『Kaydara FBX binary  [null]』
         //21-22バイト 0x1a, 0x00
         //23-26バイトまで(4バイト分): 符号なし整数,バージョンを表す
-        fp.seekPointer(23)
+        fp.seekPointer(23u)
         return true
     }
 
@@ -47,14 +46,14 @@ class FbxLoader {
     fun readFBX() {
         var curpos = fp.getPos()
         var nodeCount = 0
-        var endoffset = 0
+        var endoffset = 0u
+        while (fp.convertBYTEtoUINT() != 0u) {
 
-        while (fp.convertBYTEtoUINT().toInt() != 0) {
-
-            fp.seekPointer(fp.getPos() - 4)//"convertBYTEtoUINT() != 0"の分戻す
+            fp.seekPointer(fp.getPos() - 4u)//"convertBYTEtoUINT() != 0"の分戻す
             nodeCount++
-            endoffset = fp.convertBYTEtoUINT().toInt()
+            endoffset = fp.convertBYTEtoUINT()
             fp.seekPointer(endoffset)
+            Log.d("TAG", "readFBX endoffset: " + endoffset)
         }
         fp.seekPointer(curpos)
 
@@ -122,7 +121,7 @@ class FbxLoader {
 
         for (i in 0..node.NumChildren - 1) {
             var n1 = node.nodeChildren!![i]
-            if (0 == n1!!.className.toString().compareTo("Name")) {
+            if (nameComparison(n1!!.className, "Name")) {
                 val size = convertUCHARtoUINT(n1.Property, 1).toInt()
                 if (size > 0) {
                     le!!.name = CharArray(size)
@@ -132,7 +131,7 @@ class FbxLoader {
                 }
             }
 
-            if (0 == n1!!.className.toString().compareTo("MappingInformationType")) {
+            if (nameComparison(n1!!.className, "MappingInformationType")) {
                 val size = convertUCHARtoUINT(n1.Property, 1).toInt()
                 if (size > 0) {
                     le!!.MappingInformationType = CharArray(size)
@@ -142,28 +141,28 @@ class FbxLoader {
                 }
             }
 
-            if (0 == n1!!.className.toString().compareTo("Materials")) {
+            if (nameComparison(n1!!.className, "Materials")) {
                 val out = Decompress(n1, 4)
                 le!!.Nummaterialarr = out.third
                 le!!.materials = IntArray(out.third)
                 le!!.materials = ConvertUCHARtoINT32(out.second, 0, out.third)
             }
 
-            if (0 == n1!!.className.toString().compareTo("Normals")) {
+            if (nameComparison(n1!!.className, "Normals")) {
                 val out = Decompress(n1, 8)
                 le!!.Numnormals = out.third
                 le!!.normals = DoubleArray(out.third)
                 le!!.normals = ConvertUCHARtoDouble(out.second, 0, out.third)
             }
 
-            if (0 == n1!!.className.toString().compareTo("UV")) {
+            if (nameComparison(n1!!.className, "UV")) {
                 val out = Decompress(n1, 8)
                 le!!.NumUV = out.third
                 le!!.UV = DoubleArray(out.third)
                 le!!.UV = ConvertUCHARtoDouble(out.second, 0, out.third)
             }
 
-            if (0 == n1!!.className.toString().compareTo("UVIndex")) {
+            if (nameComparison(n1!!.className, "UVIndex")) {
                 val out = Decompress(n1, 4)
                 le!!.NumUVindex = out.third
                 le!!.UVindex = IntArray(out.third)
@@ -173,7 +172,7 @@ class FbxLoader {
     }
 
     fun getLayerElement(node: NodeRecord, mesh: FbxMeshNode) {
-        if (0 == node!!.className.toString().compareTo("LayerElementMaterial")) {
+        if (nameComparison(node!!.className, "LayerElementMaterial")) {
             val No = convertUCHARtoINT32(node!!.Property, 1)//たぶんレイヤーNo取得
             mesh!!.Material[No] = LayerElement()
             var mat = mesh!!.Material[No]
@@ -181,59 +180,18 @@ class FbxLoader {
             if (Numl > mesh!!.NumMaterial) mesh!!.NumMaterial = Numl
             getLayerElementSub(node, mat)
         }
-        if (0 == node!!.className.toString().compareTo("LayerElementNormal")) {
+        if (nameComparison(node!!.className, "LayerElementNormal")) {
             val No = convertUCHARtoINT32(node!!.Property, 1)
             mesh!!.Normals[No] = LayerElement()
             var nor = mesh!!.Normals[No]
             getLayerElementSub(node, nor)
         }
-        if (0 == node!!.className.toString().compareTo("LayerElementUV")) {
+        if (nameComparison(node!!.className, "LayerElementUV")) {
             val No = convertUCHARtoINT32(node!!.Property, 1)
             mesh!!.UV[No] = LayerElement()
             var uv = mesh!!.UV[No]
             getLayerElementSub(node, uv)
         }
-    }
-
-    fun nameComparison(name1: CharArray?, name2: CharArray?): Boolean {
-        //名前文字列に空白文字が有る場合,空白文字以前を取り除く
-        var name1Tmp = name1!!.copyOf()
-        var Ind1 = 0
-        var name1out: CharArray? = null
-        do {
-            while (name1Tmp[Ind1] != ' ' && name1Tmp.size > Ind1) {
-                Ind1++;
-            }
-            if (name1Tmp.size == Ind1) {
-                break
-            } else {
-                Ind1++;
-                val cs: CharSequence = name1Tmp.toString().subSequence(Ind1, name1Tmp.toString().lastIndex)
-                name1out = cs.toString().toCharArray()
-            }
-        } while (true)
-
-        var name2Tmp = name2!!.copyOf()
-        var Ind2 = 0
-        var name2out: CharArray? = null
-        do {
-            while (name2Tmp[Ind2] != ' ' && name2Tmp.size > Ind2) {
-                Ind2++
-            }
-            if (name2Tmp.size == Ind2) {
-                break;
-            } else {
-                Ind2++;
-                val cs: CharSequence = name2Tmp.toString().subSequence(Ind2, name2Tmp.toString().lastIndex)
-                name2out = cs.toString().toCharArray()
-            }
-        } while (true)
-
-        //名前が一致してるか
-        val len1 = name1out!!.size
-        val len2 = name2out!!.size
-        if (len1 == len2 && 0 == name1.toString().compareTo(name2.toString())) return true
-        return false
     }
 
     fun setParentPointerOfSubDeformer(mesh: FbxMeshNode?) {
@@ -257,7 +215,7 @@ class FbxLoader {
 
     fun getSubDeformer(node: NodeRecord?, mesh: FbxMeshNode?) {
         //各Deformer情報取得
-        if (0 == node!!.className.toString().compareTo("Deformer")) {
+        if (nameComparison(node!!.className, "Deformer")) {
             mesh!!.deformer[mesh!!.NumDeformer] = Deformer()
             var defo = mesh!!.deformer[mesh!!.NumDeformer]
             //Deformer名
@@ -267,7 +225,7 @@ class FbxLoader {
 
             for (i in 0..node!!.connectionNode.size - 1) {
                 var n1 = node!!.connectionNode[i]
-                if (0 == n1!!.className.toString().compareTo("Model")) {//自身のModel
+                if (nameComparison(n1!!.className, "Model")) {//自身のModel
                     getAnimation(n1, defo)
                 }
             }
@@ -275,13 +233,13 @@ class FbxLoader {
             //子ノードName登録
             for (i in 0..node!!.connectionNode.size - 1) {
                 var n1 = node!!.connectionNode[i]
-                if (0 == n1!!.className.toString().compareTo("Model")) {//自身のModel
+                if (nameComparison(n1!!.className, "Model")) {//自身のModel
                     for (i1 in 0..n1!!.connectionNode.size) {
                         var n2 = n1!!.connectionNode[i1]
-                        if (0 == n2!!.className.toString().compareTo("Model")) {//子ノードのModel
+                        if (nameComparison(n2!!.className, "Model")) {//子ノードのModel
                             val ln = n2!!.nodeName!![0]!!.size
                             defo!!.childName[defo!!.NumChild] = CharArray(ln)
-                            defo!!.childName[defo!!.NumChild++].toString().compareTo(n2!!.nodeName[0].toString())
+                            defo!!.childName[defo!!.NumChild++] = n2!!.nodeName[0]!!.copyOf()
                         }
                     }
                 }
@@ -291,7 +249,7 @@ class FbxLoader {
                 var n1 = node!!.nodeChildren!![i]
 
                 //インデックス配列,数
-                if (0 == n1!!.className.toString().compareTo("Indexes")) {
+                if (nameComparison(n1!!.className, "Indexes")) {
                     val out = Decompress(n1, 4)
                     defo!!.IndicesCount = out.third
                     defo!!.Indices = IntArray(out.third)
@@ -299,20 +257,20 @@ class FbxLoader {
                 }
 
                 //ウエイト
-                if (0 == n1!!.className.toString().compareTo("Weights")) {
+                if (nameComparison(n1!!.className, "Weights")) {
                     val out = Decompress(n1, 8)
                     defo!!.Weights = DoubleArray(out.third)
                     defo!!.Weights = ConvertUCHARtoDouble(out.second, 0, out.third)
                 }
 
                 //Transform
-                if (0 == n1!!.className.toString().compareTo("Transform")) {
+                if (nameComparison(n1!!.className, "Transform")) {
                     val out = Decompress(n1, 8)
                     defo!!.TransformMatrix = ConvertUCHARtoDouble(out.second, 0, out.third)
                 }
 
                 //TransformLink
-                if (0 == n1!!.className.toString().compareTo("TransformLink")) {
+                if (nameComparison(n1!!.className, "TransformLink")) {
                     val out = Decompress(n1, 8)
                     defo!!.TransformLinkMatrix = ConvertUCHARtoDouble(out.second, 0, out.third)
                 }
@@ -322,7 +280,7 @@ class FbxLoader {
     }
 
     fun getDeformer(node: NodeRecord?, mesh: FbxMeshNode?) {
-        if (0 == node!!.className.toString().compareTo("Deformer")) {
+        if (nameComparison(node!!.className, "Deformer")) {
             for (i in 0..node!!.connectionNode.size - 1) {
                 var n1 = node!!.connectionNode[i]
                 //各Deformer情報取得
@@ -332,7 +290,7 @@ class FbxLoader {
     }
 
     fun getGeometry(node: NodeRecord?, mesh: FbxMeshNode?) {
-        if (0 == node!!.className.toString().compareTo("Geometry")) {
+        if (nameComparison(node!!.className, "Geometry")) {
             val len = node!!.nodeName[0]!!.size
             mesh!!.Name = CharArray(len)
             mesh!!.Name = node!!.nodeName[0]!!.copyOf()
@@ -340,7 +298,7 @@ class FbxLoader {
                 var n1 = node!!.nodeChildren!![i]
 
                 //頂点
-                if (0 == n1!!.className.toString().compareTo("Vertices") && mesh!!.vertices == null) {
+                if (nameComparison(n1!!.className, "Vertices") && mesh!!.vertices == null) {
                     var out = Decompress(n1, 8)
                     mesh!!.NumVertices = out.third / 3;
                     mesh!!.vertices = DoubleArray(out.third)
@@ -348,7 +306,7 @@ class FbxLoader {
                 }
 
                 //頂点インデックス
-                if (0 == n1!!.className.toString().compareTo("PolygonVertexIndex") && mesh!!.polygonVertices == null) {
+                if (nameComparison(n1!!.className, "PolygonVertexIndex") && mesh!!.polygonVertices == null) {
                     var out = Decompress(n1, 4)
                     mesh!!.NumPolygonVertices = out.third
                     mesh!!.polygonVertices = IntArray(out.third)
@@ -388,14 +346,14 @@ class FbxLoader {
 
     fun getMaterial(node: NodeRecord?, mesh: FbxMeshNode?, materialindex: Int): Int {
         var materialIndex = materialindex
-        if (0 == node!!.className.toString().compareTo("Material")) {
+        if (nameComparison(node!!.className, "Material")) {
             mesh!!.material[materialIndex] = FbxMaterialNode()
             val len = node!!.nodeName[0]!!.size
             mesh!!.material[materialIndex]!!.MaterialName = CharArray(len)
             mesh!!.material[materialIndex]!!.MaterialName = node!!.nodeName[0]!!.copyOf()
 
             for (i in 0..node!!.NumChildren - 1) {
-                if (0 == node!!.nodeChildren!![i]!!.className.toString().compareTo("Properties70")) {
+                if (nameComparison(node!!.nodeChildren!![i]!!.className, "Properties70")) {
                     var pro70 = node!!.nodeChildren!![i]
                     for (i1 in 0..pro70!!.NumChildren - 1) {
                         mesh!!.material[materialIndex]!!.Diffuse = getCol(pro70!!.nodeChildren!![i1], "DiffuseColor")
@@ -406,21 +364,27 @@ class FbxLoader {
             }
 
             for (i in 0..node!!.connectionNode.size - 1) {
-                if (0 == node!!.connectionNode!![i]!!.className.toString().compareTo("Texture")) {
+                if (nameComparison(node!!.connectionNode!![i]!!.className, "Texture")) {
                     var tex = node!!.connectionNode!![i]
                     var texTypeDiff = true
                     for (i1 in 0..tex!!.NumChildren - 1) {
-                        if (0 == tex!!.nodeChildren!![i1]!!.className.toString()!!.compareTo("TextureName")) {
+                        if (nameComparison(tex!!.nodeChildren!![i1]!!.className, "TextureName")) {
                             var texname = tex!!.nodeChildren!![i1]!!.nodeName[0]
                             val normal_Len = 6
-                            val tName: CharSequence = texname.toString()
-                                .subSequence(texname!!.size - normal_Len, texname.toString().lastIndex)
-                            val tNames = tName.toString()
-                            if (0 == tNames.compareTo("normal")) texTypeDiff = false
+                            val end = texname!!.size - 1
+                            val st = end - (normal_Len - 1)
+                            if (st >= 0) {
+                                var tName = CharArray(normal_Len)
+                                var tNameCnt = 0
+                                for (i2 in st..end) {
+                                    tName[tNameCnt++] = texname[i2]
+                                }
+                                if (nameComparison(tName, "normal")) texTypeDiff = false
+                            }
                         }
                     }
                     for (i1 in 0..tex!!.NumChildren - 1) {
-                        if (0 == tex!!.nodeChildren!![i1]!!.className.toString().compareTo("FileName")) {
+                        if (nameComparison(tex!!.nodeChildren!![i1]!!.className, "FileName")) {
                             var texN = tex!!.nodeChildren!![i1]
                             val len = texN!!.nodeName[0]!!.size
                             if (texTypeDiff) {
@@ -445,8 +409,8 @@ class FbxLoader {
 
     fun getMesh() {
         for (i in 0..rootNode!!.connectionNode!!.size - 1) {
-            if (0 == rootNode!!.connectionNode!![i]!!.className.toString().compareTo("Model") &&
-                0 == rootNode!!.connectionNode!![i]!!.nodeName[1].toString().compareTo("Mesh")
+            if (nameComparison(rootNode!!.connectionNode!![i]!!.className, "Model") &&
+                nameComparison(rootNode!!.connectionNode!![i]!!.nodeName[1], "Mesh")
             ) {
                 NumMesh++
             }
@@ -459,8 +423,8 @@ class FbxLoader {
         var matcnt = 0
         for (i in 0..rootNode!!.connectionNode!!.size - 1) {
             var n1 = rootNode!!.connectionNode!![i]
-            if (0 == n1!!.className.toString().compareTo("Model") &&
-                0 == n1!!.nodeName!![1].toString().compareTo("Mesh")
+            if (nameComparison(n1!!.className, "Model") &&
+                nameComparison(n1!!.nodeName!![1], "Mesh")
             ) {
                 for (i1 in 0..n1!!.connectionNode!!.size - 1) {
                     var n2 = n1!!.connectionNode!![i1]
@@ -475,9 +439,9 @@ class FbxLoader {
         //rootBone生成, name登録(本来Deformerじゃないので別に生成)
         for (i in 0..rootNode!!.connectionNode!!.size - 1) {
             var n1 = rootNode!!.connectionNode!![i]
-            if (0 == n1!!.className.toString().compareTo("Model") && n1.nodeName!![1] != null) {
-                if (0 == n1!!.nodeName!![1].toString().compareTo("Root") ||
-                    0 == n1!!.nodeName!![1].toString().compareTo("Limb")
+            if (nameComparison(n1!!.className, "Model") && n1.nodeName!![1] != null) {
+                if (nameComparison(n1!!.nodeName!![1], "Root") ||
+                    nameComparison(n1!!.nodeName!![1], "Limb")
                 ) {
                     for (j in 0..NumMesh - 1) {
                         Mesh!![j]!!.rootDeformer = Deformer()
@@ -489,7 +453,7 @@ class FbxLoader {
                         //子ノードのModelName登録
                         for (i1 in 0..n1!!.connectionNode!!.size - 1) {
                             var n2 = n1!!.connectionNode[i1]
-                            if (0 == n2!!.className.toString().compareTo("Model")) {
+                            if (nameComparison(n2!!.className, "Model")) {
                                 val ln = n2!!.nodeName[0]!!.size
                                 defo!!.childName[defo!!.NumChild] = CharArray(ln)
                                 defo!!.childName[defo!!.NumChild++] = n2!!.nodeName[0]!!.copyOf()
@@ -535,7 +499,7 @@ class FbxLoader {
     }
 
     fun getNoneMeshSubDeformer(node: NodeRecord?) {
-        if (0 == node!!.className.toString().compareTo("Model")) {
+        if (nameComparison(node!!.className, "Model")) {
             deformer[NumDeformer] = Deformer()
             var defo = deformer[NumDeformer]
             NumDeformer++
@@ -546,7 +510,7 @@ class FbxLoader {
             //子ノードのModelName登録
             for (i in 0..node!!.connectionNode!!.size - 1) {
                 var n1 = node!!.connectionNode[i]
-                if (0 == n1!!.className.toString().compareTo("Model")) {
+                if (nameComparison(n1!!.className, "Model")) {
                     val ln = n1!!.nodeName[0]!!.size
                     defo!!.childName[defo!!.NumChild] = CharArray(ln)
                     defo!!.childName[defo!!.NumChild++] = n1!!.nodeName[0]!!.copyOf()
@@ -559,8 +523,8 @@ class FbxLoader {
     fun getNoneMeshDeformer() {
         for (i in 0..rootNode!!.connectionNode!!.size - 1) {
             var n1 = rootNode!!.connectionNode[i]
-            if (0 == n1!!.className.toString().compareTo("Model") && n1!!.nodeName[1] != null) {
-                if (0 == n1!!.nodeName[1].toString().compareTo("Root") || 0 == n1!!.nodeName[1].toString().compareTo("Limb")) {
+            if (nameComparison(n1!!.className, "Model") && n1!!.nodeName[1] != null) {
+                if (nameComparison(n1!!.nodeName[1], "Root") || nameComparison(n1!!.nodeName[1], "Limb")) {
                     rootDeformer = Deformer()
                     val len = n1!!.nodeName[0]!!.size
                     rootDeformer!!.thisName = CharArray(len)
@@ -569,7 +533,7 @@ class FbxLoader {
                     //子ノードのModelName登録
                     for (i1 in 0..n1!!.connectionNode!!.size - 1) {
                         var n2 = n1!!.connectionNode[i1]
-                        if (0 == n2!!.className.toString().compareTo("Model")) {
+                        if (nameComparison(n2!!.className, "Model")) {
                             val ln = n2!!.nodeName[0]!!.size
                             rootDeformer!!.childName[rootDeformer!!.NumChild] = CharArray(ln)
                             rootDeformer!!.childName[rootDeformer!!.NumChild++] == n2!!.nodeName[0]!!.copyOf()
@@ -585,8 +549,8 @@ class FbxLoader {
 
     fun getCol(pro70Child: NodeRecord?, ColStr: String): DoubleArray {
         var out = DoubleArray(3, { 0.0 })
-        if (0 == pro70Child!!.className.toString().compareTo("P") &&
-            0 == pro70Child!!.nodeName[0].toString().compareTo(ColStr)
+        if (nameComparison(pro70Child!!.className, "P") &&
+            nameComparison(pro70Child!!.nodeName[0], ColStr)
         ) {
             var proInd = 1u
             for (i in 0..3) {
@@ -603,8 +567,8 @@ class FbxLoader {
     }
 
     fun getLcl(pro70Child: NodeRecord?, anim: Array<AnimationCurve?>, LclStr: String) {
-        if (0 == pro70Child!!.className.toString().compareTo("P") &&
-            0 == pro70Child!!.nodeName[0].toString().compareTo(LclStr)
+        if (nameComparison(pro70Child!!.className, "P") &&
+            nameComparison(pro70Child!!.nodeName[0], LclStr)
         ) {
             var proInd = 1u
             for (i in 0..3) {
@@ -621,34 +585,34 @@ class FbxLoader {
 
     fun getAnimationCurve(animNode: NodeRecord?, anim: Array<AnimationCurve?>, Lcl: String) {
         var animInd = 0u
-        if (0 == animNode!!.className.toString().compareTo("AnimationCurveNode") &&
-            0 == animNode!!.nodeName[0].toString().compareTo(Lcl)
+        if (nameComparison(animNode!!.className, "AnimationCurveNode") &&
+            nameComparison(animNode!!.nodeName[0], Lcl)
         ) {
             for (i in 0..animNode!!.connectionNode!!.size - 1) {
-                if (0 == animNode!!.connectionNode[i]!!.className.toString().compareTo("AnimationCurve")) {
+                if (nameComparison(animNode!!.connectionNode[i]!!.className, "AnimationCurve")) {
                     var animCurve = animNode!!.connectionNode[i]
                     for (i1 in 0..animCurve!!.NumChildren - 1) {
-                        if (0 == animCurve!!.nodeChildren!![i1]!!.className.toString().compareTo("Default")) {
+                        if (nameComparison(animCurve!!.nodeChildren!![i1]!!.className, "Default")) {
                             if (anim[animInd.toInt()]!!.def) continue
                             anim[animInd.toInt()]!!.DefaultKey =
                                     convertUCHARtoDouble(animCurve!!.nodeChildren!![i1]!!.Property, 1)
                             anim[animInd.toInt()]!!.def = true
                         }
-                        if (0 == animCurve!!.nodeChildren!![i1]!!.className.toString().compareTo("KeyTime")) {
+                        if (nameComparison(animCurve!!.nodeChildren!![i1]!!.className, "KeyTime")) {
                             if (anim[animInd.toInt()]!!.KeyTime != null) continue
                             var out = Decompress(animCurve!!.nodeChildren!![i1], 8)
                             if (out.first) {
-                                anim[animInd.toInt()]!!.NumKey = out.third
+                                anim[animInd.toInt()]!!.NumKey = out.third.toUInt()
                                 anim[animInd.toInt()]!!.KeyTime = LongArray(out.third)
                                 anim[animInd.toInt()]!!.KeyTime = ConvertUCHARtoint64_t(out.second, 0, out.third)
                             }
 
                         }
-                        if (0 == animCurve!!.nodeChildren!![i1]!!.className.toString().compareTo("KeyValueFloat")) {
+                        if (nameComparison(animCurve!!.nodeChildren!![i1]!!.className, "KeyValueFloat")) {
                             if (anim[animInd.toInt()]!!.KeyValueFloat != null) continue
                             var out = Decompress(animCurve!!.nodeChildren!![i1], 4)
                             if (out.first) {
-                                anim[animInd.toInt()]!!.NumKey = out.third
+                                anim[animInd.toInt()]!!.NumKey = out.third.toUInt()
                                 anim[animInd.toInt()]!!.KeyValueFloat = FloatArray(out.third)
                                 anim[animInd.toInt()]!!.KeyValueFloat = ConvertUCHARtofloat(out.second, 0, out.third)
                             }
@@ -663,7 +627,7 @@ class FbxLoader {
     fun getAnimation(model: NodeRecord?, defo: Deformer?) {
         //Lcl Translation, Lcl Rotation, Lcl Scaling取得
         for (i in 0..model!!.NumChildren - 1) {
-            if (0 == model!!.nodeChildren!![i]!!.className.toString().compareTo("Properties70")) {
+            if (nameComparison(model!!.nodeChildren!![i]!!.className, "Properties70")) {
                 var pro70 = model!!.nodeChildren!![i]
                 for (i1 in 0..pro70!!.NumChildren - 1) {
                     getLcl(pro70!!.nodeChildren!![i1], defo!!.Translation, "Lcl Translation")
@@ -680,8 +644,8 @@ class FbxLoader {
         }
     }
 
-    fun setFbxFile(pass: String): Boolean {
-        fp.setFile(pass)
+    fun setFbxFile(con: Context, rawId: Int): Boolean {
+        fp.setFile(con, rawId)
         if (fileCheck() == false) return false
         searchVersion()
         readFBX()

@@ -15,9 +15,9 @@ class DecompressDeflate {
     private val byteArrayNumbit = 8u
 
     private var strSign = UShortArray(286, { 0u })//size286の配列を全要素0で初期化
-    private var strNumSign = ByteArray(286, { 0 })
+    private var strNumSign = UByteArray(286, { 0u })
     private var lenSign = UShortArray(30, { 0u })
-    private var lenNumSign = ByteArray(30, { 0 })
+    private var lenNumSign = UByteArray(30, { 0u })
 
     private fun bitInversion(ba: UByteArray, size: Int): UByteArray {
         var baB = ba.copyOf()
@@ -114,34 +114,34 @@ class DecompressDeflate {
         for (i: Int in 0..286 - 1 step 1) {
             if (0 <= i && i <= 143) {
                 strSign[i] = (i + 48).toUShort()
-                strNumSign[i] = 8
+                strNumSign[i] = 8u
             }
             if (144 <= i && i <= 255) {
                 strSign[i] = (i + 256).toUShort()
-                strNumSign[i] = 9
+                strNumSign[i] = 9u
             }
             if (256 <= i && i <= 279) {
                 strSign[i] = (i - 256).toUShort()
-                strNumSign[i] = 7
+                strNumSign[i] = 7u
             }
             if (280 <= i && i <= 287) {
                 strSign[i] = (i - 88).toUShort()
-                strNumSign[i] = 8
+                strNumSign[i] = 8u
             }
         }
         for (i: Int in 0..30 - 1 step 1) {
             lenSign[i] = i.toUShort()
-            lenNumSign[i] = 5
+            lenNumSign[i] = 5u
         }
     }
 
-    private fun SortIndex(sortedIndex: UShortArray, hclens: ByteArray, size: Int): Pair<UShortArray, ByteArray> {
+    private fun SortIndex(sortedIndex: UShortArray, hclens: UByteArray, size: Int): Pair<UShortArray, UByteArray> {
         val topSize = size * 0.5
         val halfSize = size - topSize
         var topSortedIndex = UShortArray(topSize.toInt())
         var halfSortedIndex = UShortArray(halfSize.toInt())
-        var tophclens = ByteArray(topSize.toInt())
-        var halfhclens = ByteArray(halfSize.toInt())
+        var tophclens = UByteArray(topSize.toInt())
+        var halfhclens = UByteArray(halfSize.toInt())
 
         for (i: Int in 0..topSize.toInt() - 1 step 1) {
             topSortedIndex[i] = sortedIndex[i]
@@ -202,7 +202,7 @@ class DecompressDeflate {
         return Pair(sortedIndex, hclens)
     }
 
-    private fun CreateSign(clens: UShortArray, hclens: ByteArray, SortedIndex: UShortArray, size: Int): UShortArray {
+    private fun CreateSign(clens: UShortArray, hclens: UByteArray, SortedIndex: UShortArray, size: Int): UShortArray {
         var firstIndex = 0
         while (hclens[SortedIndex[firstIndex++].toInt()].toInt() == 0)
             firstIndex--
@@ -236,7 +236,7 @@ class DecompressDeflate {
         //(HCLEN + 4) * 3 のビット読み込み
         val NumSign = 19;
         //符号長表の符号長表作成
-        var hclens = ByteArray(NumSign, { 0 })//符号長配列
+        var hclens = UByteArray(NumSign, { 0u })//符号長配列
         var clens = UShortArray(NumSign, { 0u })//符号配列
         //16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15の順番で要素データが並んでる,符号長を表している
         val SignInd = byteArrayOf(16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15)
@@ -245,7 +245,7 @@ class DecompressDeflate {
         for (i: Int in 0..numroop - 1 step 1) {
             var pair = getBit(curSearchBit, byteArray, 3, true)//符号長数を読み込む
             curSearchBit = pair.first
-            hclens[SignInd[i].toInt()] = pair.second.toByte()
+            hclens[SignInd[i].toInt()] = pair.second.toUByte()
         }
         //符号長が小さい順に並べる, (0個以外)
         var SortedIndex = UShortArray(NumSign, { 0u })//ソート後のインデックス配列
@@ -266,15 +266,15 @@ class DecompressDeflate {
         //文字/一致長符号長表,距離符号長表生成
         val strSigLen = HLIT + 257
         val destSigLen = HDIST + 1
-        var sigLenList = ByteArray(strSigLen + destSigLen, { 0 })
+        var sigLenList = UByteArray(strSigLen + destSigLen, { 0u })
         var firstIndex = 0
-        while (hclens[SortedIndex[firstIndex++].toInt()] == 0.toByte())
+        while (hclens[SortedIndex[firstIndex++].toInt()] == 0.toUByte())
             firstIndex--
         var prevBit = 0
         var sigLenInd = 0
         while (sigLenInd < (strSigLen + destSigLen)) {
             for (i1 in firstIndex..NumSign - 1 step 1) {//bit探索
-                val pair = getBit(curSearchBit, byteArray, hclens[SortedIndex[i1].toInt()], false)//符号を読み込む
+                val pair = getBit(curSearchBit, byteArray, hclens[SortedIndex[i1].toInt()].toByte(), false)//符号を読み込む
                 curSearchBit = pair.first
                 val outBin = pair.second
                 if (clens[SortedIndex[i1].toInt()] == outBin.toUShort()) {//一致した場合
@@ -283,7 +283,7 @@ class DecompressDeflate {
                         val pair = getBit(curSearchBit, byteArray, 2, true);//反復長を取り出す符号ではない為,通常順序
                         curSearchBit = pair.first
                         val obit = pair.second.toInt()
-                        for (i16 in 0..obit + 2 step 1) sigLenList[sigLenInd++] = prevBit.toByte()
+                        for (i16 in 0..obit + 2 step 1) sigLenList[sigLenInd++] = prevBit.toUByte()
                         break
                     }
                     if (SortedIndex[i1] == 17.toUShort()) {
@@ -291,7 +291,7 @@ class DecompressDeflate {
                         val pair = getBit(curSearchBit, byteArray, 3, true)
                         curSearchBit = pair.first
                         val obit = pair.second.toInt()
-                        for (i17 in 0..obit + 2 step 1) sigLenList[sigLenInd++] = 0
+                        for (i17 in 0..obit + 2 step 1) sigLenList[sigLenInd++] = 0u
                         break
                     }
                     if (SortedIndex[i1] == 18.toUShort()) {
@@ -299,11 +299,11 @@ class DecompressDeflate {
                         val pair = getBit(curSearchBit, byteArray, 7, true)
                         curSearchBit = pair.first
                         var obit = pair.second.toInt()
-                        for (i18 in 0..obit + 11 - 1 step 1) sigLenList[sigLenInd++] = 0
+                        for (i18 in 0..obit + 11 - 1 step 1) sigLenList[sigLenInd++] = 0u
                         break
                     }
                     //符号長の場合
-                    sigLenList[sigLenInd++] = SortedIndex[i1].toByte()
+                    sigLenList[sigLenInd++] = SortedIndex[i1].toUByte()
                     prevBit = SortedIndex[i1].toInt()
                     break
                 }
@@ -313,8 +313,8 @@ class DecompressDeflate {
 
         //文字/一致長符号長表,距離符号長表からそれぞれの符号表を生成する
         //文字/一致長符号長表,距離符号長表に分割する
-        var strSigLenList = ByteArray(strSigLen, { 0 })
-        var destSigLenList = ByteArray(destSigLen, { 0 })
+        var strSigLenList = UByteArray(strSigLen, { 0u })
+        var destSigLenList = UByteArray(destSigLen, { 0u })
         for (i in 0..strSigLen - 1 step 1) {
             strSigLenList[i] = sigLenList[i]
         }
@@ -361,10 +361,10 @@ class DecompressDeflate {
         var roop = true
         while (roop) {
             for (va in 0..286 - 1) {
-                val pair = getBit(curSearchBit, byteArray, strNumSign[va], false);//符号を読み込む,符号なのでビッグエンディアン
+                val pair = getBit(curSearchBit, byteArray, strNumSign[va].toByte(), false);//符号を読み込む,符号なのでビッグエンディアン
                 curSearchBit = pair.first
                 val outBin = pair.second
-                if (strNumSign[va] > 0 && strSign[va] == outBin) {//一致した場合
+                if (strNumSign[va] > 0u && strSign[va] == outBin) {//一致した場合
                     if (va <= 255) {
                         //0~255の値はそのまま置換無しでoutArray代入
                         outArray[outIndex++] = va.toUByte();//置換無しで出力(1byte)
@@ -385,10 +385,10 @@ class DecompressDeflate {
                         MatchLen += outExpansionBit//拡張ビット有った場合, 一致長に足す
                         //距離値処理
                         for (destVal in 0..30 - 1) {
-                            val pair = getBit(curSearchBit, byteArray, lenNumSign[destVal], false)
+                            val pair = getBit(curSearchBit, byteArray, lenNumSign[destVal].toByte(), false)
                             curSearchBit = pair.first
                             val lenBin = pair.second
-                            if (lenNumSign[destVal] > 0 && lenSign[destVal] == lenBin) {
+                            if (lenNumSign[destVal] > 0u && lenSign[destVal] == lenBin) {
                                 val pair = getDestLength(destVal.toShort())
                                 var destLen = pair.first.toUInt()
                                 val destbitlen = pair.second.toByte()

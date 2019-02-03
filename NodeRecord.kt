@@ -1,5 +1,7 @@
 package jp.sugasato.fbxloaderkt
 
+import android.util.Log
+
 class ConnectionNo {
 
     var ConnectionID: Long = -1
@@ -34,18 +36,21 @@ class NodeRecord {
         var swt = 0
         var ln = 0
         var nameNo = 0
-        var addInd = 0
         var loop = 0
         while (loop < PropertyListLen) {
             when (swt) {
                 3 -> {
                     //Lの処理
-                    val cName: String = className.toString()
-                    val st = classNameLen - 4
-                    val end = cName.lastIndex
-                    val sch: CharSequence = cName.subSequence(st, end)
-                    val CName: String = sch.toString()
-                    if (0 == CName.compareTo("Time")) {
+                    var name4 = CharArray(4)
+                    val end = className!!.size - 1
+                    var st = end - 3
+                    if (st < 0) st = 0
+                    var name4Cnt = 0
+                    for (i in st..end) {
+                        name4[name4Cnt++] = className!![i]
+                    }
+
+                    if (nameComparison(name4, "Time")) {
                         loop += 7
                         swt = 0
                     } else {
@@ -58,7 +63,7 @@ class NodeRecord {
                 }
                 2 -> {
                     for (i in 0..ln - 1) {
-                        nodeName[nameNo]!!.set(i, Property!![loop + i].toByte().toChar())
+                        nodeName[nameNo]!![i] = Property!![loop + i].toByte().toChar()
                     }
                     nameNo++
                     if (nameNo >= NUMNODENAME) return
@@ -139,37 +144,38 @@ class NodeRecord {
         classNameLen = fp.getByte().toInt()
         className = CharArray(classNameLen)
         for (i in 0..classNameLen - 1) {
-            className!!.set(i, fp.getByte().toChar())
+            className!![i] = fp.getByte().toByte().toChar()
+            Log.d("TAG", "NodeRecord_set className: " + className!![i])
         }
         if (PropertyListLen > 0) {
             Property = UByteArray(PropertyListLen)
             for (i in 0..PropertyListLen - 1) {
-                Property!!.set(i, fp.getByte().toUByte())
+                Property!!.set(i, fp.getByte())
             }
             searchName_Type(cn);
-            if (0 == className.toString().compareTo("C") &&
-                (0 == nodeName[0].toString().compareTo("OO") ||
-                        0 == nodeName[0].toString().compareTo("OP"))
+            if (nameComparison(className, "C") &&
+                (nameComparison(nodeName[0], "OO") ||
+                        nameComparison(nodeName[0], "OP"))
             ) {
-                createConnectionList(cnLi);
+                createConnectionList(cnLi)
             }
         }
 
         val curpos = fp.getPos()
         //現在のファイルポインタがEndOffsetより手前,かつ
         //現ファイルポインタから4byteが全て0ではない場合, 子ノード有り
-        if (EndOffset > curpos.toUInt() && fp.convertBYTEtoUINT() != 0u) {
-            var topChildPointer = curpos.toUInt()
+        if (EndOffset > curpos && fp.convertBYTEtoUINT() != 0u) {
+            var topChildPointer = curpos
             var childEndOffset = 0u
             //子ノードEndOffsetをたどり,個数カウント
             do {
-                fp.seekPointer(fp.getPos() - 4)//"convertBYTEtoUINT(fp) != 0"の分戻す
+                fp.seekPointer(fp.getPos() - 4u)//"convertBYTEtoUINT(fp) != 0"の分戻す
                 NumChildren++;
                 childEndOffset = fp.convertBYTEtoUINT()
-                fp.seekPointer(childEndOffset.toInt())
+                fp.seekPointer(childEndOffset)
             } while (EndOffset > childEndOffset && fp.convertBYTEtoUINT() != 0u)
             //カウントが終わったので最初の子ノードのファイルポインタに戻す
-            fp.seekPointer(topChildPointer.toInt())
+            fp.seekPointer(topChildPointer)
             nodeChildren = arrayOfNulls(NumChildren)
             for (i in 0..NumChildren - 1) {
                 nodeChildren!![i] = NodeRecord()
@@ -177,6 +183,6 @@ class NodeRecord {
             }
         }
         //読み込みが終了したのでEndOffsetへポインタ移動
-        fp.seekPointer(EndOffset.toInt())
+        fp.seekPointer(EndOffset)
     }
 }

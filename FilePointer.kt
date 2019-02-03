@@ -1,35 +1,37 @@
 package jp.sugasato.fbxloaderkt
 
-import java.io.File
+import java.io.InputStream
+import android.content.Context
 
 class FilePointer {
 
-    private var pointer: Int = 0
-    private var fileStr: ByteArray? = null
+    private var pointer: UInt = 0u
+    private var fileStr: UByteArray? = null
 
-    fun setFile(pass: String) {
-        val file = File(pass)
-        fileStr = file.readBytes()
+    fun setFile(con: Context, rawId: Int) {
+        val raw: InputStream = con.getResources().openRawResource(rawId)
+        fileStr = raw.readBytes().toUByteArray()
     }
 
-    fun getPos(): Int {
+    fun getPos(): UInt {
         return pointer
     }
 
-    fun seekPointer(ind: Int) {
+    fun seekPointer(ind: UInt) {
         pointer = ind
     }
 
-    fun getByte(): Byte {
-        var ret = fileStr!![pointer]
+    fun getByte(): UByte {
+        var ret = fileStr!![pointer.toInt()]
         pointer++
         return ret
     }
 
     fun convertBYTEtoUINT(): UInt {
-        var ret: UInt = ((fileStr!![3 + pointer].toInt() shl 24) or (fileStr!![2 + pointer].toInt() shl 16) or
-                (fileStr!![1 + pointer].toInt() shl 8) or (fileStr!![0 + pointer].toInt())).toUInt()
-        pointer += 4
-        return ret
+        val Pointer = pointer.toInt()
+        var ret: Int = ((fileStr!![3 + Pointer].toInt() shl 24) or (fileStr!![2 + Pointer].toInt() shl 16) or
+                (fileStr!![1 + Pointer].toInt() shl 8) or (fileStr!![0 + Pointer].toInt())).toInt()
+        pointer += 4u
+        return ret.toUInt()
     }
 }

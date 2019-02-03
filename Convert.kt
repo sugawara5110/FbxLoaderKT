@@ -1,6 +1,7 @@
 package jp.sugasato.fbxloaderkt
 
 import kotlin.math.pow
+import android.util.Log
 
 fun convertUCHARtoUINT(arr:UByteArray?,offset:Int):UInt {
     return ((arr!![3 + offset].toInt() shl 24) or (arr!![2 + offset].toInt() shl 16) or
@@ -97,4 +98,66 @@ fun ConvertUCHARtofloat(arr:UByteArray?, offset:Int, outsize:Int):FloatArray {
         outArr[i] = convertUCHARtoFloat(arr, Offset)
     }
     return outArr
+}
+
+fun nameComparison(name1: CharArray?, name2: CharArray?): Boolean {
+    //名前文字列に空白文字が有る場合,空白文字以前を取り除く
+    //空白は1個しかない
+    val name1Tmp = name1!!.copyOf()
+    var Ind1 = 0
+    var name1out: CharArray? = null
+    while (name1Tmp.size > Ind1 && name1Tmp[Ind1] != ' ') Ind1++
+    val end = name1Tmp.size - 1
+    var st = 0
+    if (name1Tmp.size > Ind1) {
+        st = Ind1 + 1
+    }
+    name1out = CharArray(name1Tmp.size - st)
+    var ind11 = 0
+    for (i in st..end) {
+        name1out[ind11++] = name1Tmp[i]
+    }
+
+    val name2Tmp = name2!!.copyOf()
+    var Ind2 = 0
+    var name2out: CharArray? = null
+    while (name2Tmp.size > Ind2 && name2Tmp[Ind2] != ' ') Ind2++
+    val end2 = name2Tmp.size - 1
+    var st2 = 0
+    if (name2Tmp.size > Ind2) {
+        st2 = Ind2 + 1
+    }
+    name2out = CharArray(name2Tmp.size - st2)
+    var ind21 = 0
+    for (i in st2..end2) {
+        name2out[ind21++] = name2Tmp[i]
+    }
+
+    //名前が一致してるか
+    val len1 = name1out!!.size
+    val len2 = name2out!!.size
+    if (len1 != len2) return false
+    var cnt = 0
+    for (i in 0..len1 - 1) {
+        if (name1out!![i] == name2out!![i]) cnt++
+    }
+    if (len1 == cnt) return true
+    return false
+}
+
+fun nameComparison(name1: Array<Char?>, name2: String): Boolean {
+
+    var ch1 = CharArray(name1.size)
+    var ch2 = CharArray(name2.length)
+    for (i in 0..name1.size - 1) ch1[i] = name1[i]!!.toChar()
+    for (i in 0..name2.length - 1) ch2[i] = name2[i]!!.toChar()
+    return nameComparison(ch1, ch2)
+}
+
+fun nameComparison(name1: CharArray?, name2: String): Boolean {
+
+    val ch1 = name1!!.copyOf()
+    var ch2 = CharArray(name2.length)
+    for (i in 0..name2.length - 1) ch2[i] = name2[i]!!.toChar()
+    return nameComparison(ch1, ch2)
 }
