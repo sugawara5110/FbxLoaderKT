@@ -1,8 +1,8 @@
 package jp.sugasato.fbxloaderkt
 
 class LayerElement {
-    var MappingInformationType: CharArray? = null
-    var name: CharArray? = null
+    var MappingInformationType: NameSet = NameSet()
+    var name: NameSet = NameSet()
     var Nummaterialarr: Int = 0
     var materials: IntArray? = null
     var Numnormals: Int = 0

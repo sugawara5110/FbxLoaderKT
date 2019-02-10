@@ -1,17 +1,59 @@
 package jp.sugasato.fbxloaderkt
 
-import android.util.Log
-
 class ConnectionNo {
-
     var ConnectionID: Long = -1
     var ConnectionIDPointer: NodeRecord? = null
 }
 
 class ConnectionList {
-
     var ChildID: Long = -1
     var ParentID: Long = -1
+}
+
+class NameSet {
+    private var Name: CharArray? = null
+    private var Size: Int = 0
+
+    fun setSize(size: Int) {
+        Size = size
+    }
+
+    fun getSize(): Int {
+        return Size
+    }
+
+    fun getName(): CharArray? {
+        return Name
+    }
+
+    fun setName(name: CharArray?, index: Int) {
+        var nullPos = Size
+        for (i in 0..Size - 1) {
+            if (name!![index + i].toByte() == 0x00.toByte()) {
+                if (name!![index + i + 1].toByte() == 0x01.toByte()) {
+                    nullPos = i
+                }
+            }
+        }
+        Size = nullPos
+        Name = CharArray(Size)
+        for (i in 0..Size - 1) {
+            Name!![i] = name!![index + i]
+        }
+    }
+
+    fun setName(name: UByteArray?, index: Int) {
+        val nameC = CharArray(Size)
+        for (i in 0..Size - 1) {
+            nameC[i] = name!![index + i].toByte().toChar()
+        }
+        setName(nameC, 0)
+    }
+
+    fun setName(name: String) {
+        val cname = name.toCharArray()
+        setName(cname, 0)
+    }
 }
 
 class NodeRecord {
@@ -21,15 +63,14 @@ class NodeRecord {
     var EndOffset: UInt = 0u//次のファイルの先頭バイト数
     var NumProperties: Int = 0//プロパティの数
     var PropertyListLen: Int = 0//プロパティリストの大きさ(byte)
-    var classNameLen = 0
-    var className: CharArray? = null
+    var className: NameSet = NameSet()
     var Property: UByteArray? = null//(型type, そのdataの順で並んでる) * プロパティの数
 
-    var nodeName: Array<CharArray?> = arrayOfNulls(NUMNODENAME)
+    var nodeName: Array<NameSet> = Array<NameSet>(NUMNODENAME, { i -> NameSet() })
     var NumChildren: Int = 0
     var nodeChildren: Array<NodeRecord?>? = null//{}内のノード, NodeRecord配列用
 
-    var thisConnectionID: Long = -1
+    var thisConnectionID: Long = -1L
     var connectionNode: ArrayList<NodeRecord?> = arrayListOf() //NodeRecord接続用(.add(要素)で追加)
 
     fun searchName_Type(cn: ArrayList<ConnectionNo?>) {
@@ -42,12 +83,12 @@ class NodeRecord {
                 3 -> {
                     //Lの処理
                     var name4 = CharArray(4)
-                    val end = className!!.size - 1
+                    val end = className!!.getSize() - 1
                     var st = end - 3
                     if (st < 0) st = 0
                     var name4Cnt = 0
                     for (i in st..end) {
-                        name4[name4Cnt++] = className!![i]
+                        name4[name4Cnt++] = className!!.getName()!![i]
                     }
 
                     if (nameComparison(name4, "Time")) {
@@ -62,9 +103,7 @@ class NodeRecord {
                     }
                 }
                 2 -> {
-                    for (i in 0..ln - 1) {
-                        nodeName[nameNo]!![i] = Property!![loop + i].toByte().toChar()
-                    }
+                    nodeName[nameNo]!!.setName(Property, loop)
                     nameNo++
                     if (nameNo >= NUMNODENAME) return
                     loop += ln - 1
@@ -74,7 +113,7 @@ class NodeRecord {
                     ln = (Property!![loop + 3].toInt() shl 24) or (Property!![loop + 2].toInt() shl 16) or
                             (Property!![loop + 1].toInt() shl 8) or (Property!![loop].toInt())
                     if (ln > 0) {
-                        nodeName[nameNo] = CharArray(ln + 1)
+                        nodeName[nameNo]!!.setSize(ln)
                         loop += 3
                         swt = 2
                     } else {
@@ -118,13 +157,13 @@ class NodeRecord {
                     }
                 }
             }
-            if (thisConnectionID != -1L) {
-                var tmp: ConnectionNo = ConnectionNo()
-                tmp.ConnectionID = thisConnectionID
-                tmp.ConnectionIDPointer = this
-                cn.add(tmp)
-            }
             loop++
+        }
+        if (thisConnectionID != -1L) {
+            var tmp: ConnectionNo = ConnectionNo()
+            tmp.ConnectionID = thisConnectionID
+            tmp.ConnectionIDPointer = this
+            cn.add(tmp)
         }
     }
 
@@ -141,12 +180,13 @@ class NodeRecord {
         EndOffset = fp.convertBYTEtoUINT()
         NumProperties = fp.convertBYTEtoUINT().toInt()
         PropertyListLen = fp.convertBYTEtoUINT().toInt()
-        classNameLen = fp.getByte().toInt()
-        className = CharArray(classNameLen)
+        val classNameLen = fp.getByte().toInt()
+        className.setSize(classNameLen)
+        var classname = CharArray(classNameLen)
         for (i in 0..classNameLen - 1) {
-            className!![i] = fp.getByte().toByte().toChar()
-            Log.d("TAG", "NodeRecord_set className: " + className!![i])
+            classname!![i] = fp.getByte().toByte().toChar()
         }
+        className.setName(classname, 0)
         if (PropertyListLen > 0) {
             Property = UByteArray(PropertyListLen)
             for (i in 0..PropertyListLen - 1) {

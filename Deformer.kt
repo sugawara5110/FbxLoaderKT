@@ -5,9 +5,9 @@ import kotlin.math.*
 class Deformer {
 
     //ツリー情報
-    var thisName: CharArray? = null//自身の名前
+    var thisName: NameSet = NameSet()//自身の名前
     var NumChild: Int = 0
-    var childName: Array<CharArray?> = arrayOfNulls(100)//子DeformerName
+    var childName: Array<NameSet> = Array<NameSet>(100, { i -> NameSet() })//子DeformerName
     var parentNode: Deformer? = null//EvaluateGlobalTransformの計算に使う
 
     var IndicesCount: Int = 0//このボーンに影響を受ける頂点インデックス数
@@ -18,9 +18,9 @@ class Deformer {
     var LocalPose: DoubleArray = DoubleArray(16, { 0.0 })
     var GlobalPose: DoubleArray = DoubleArray(16, { 0.0 })
 
-    var Translation: Array<AnimationCurve?> = arrayOfNulls(3)
-    var Rotation: Array<AnimationCurve?> = arrayOfNulls(3)
-    var Scaling: Array<AnimationCurve?> = arrayOfNulls(3)
+    var Translation: Array<AnimationCurve> = Array<AnimationCurve>(3, { i -> AnimationCurve() })
+    var Rotation: Array<AnimationCurve> = Array<AnimationCurve>(3, { i -> AnimationCurve() })
+    var Scaling: Array<AnimationCurve> = Array<AnimationCurve>(3, { i -> AnimationCurve() })
 
     fun MatrixScaling(mat: DoubleArray, sx: Double, sy: Double, sz: Double) {
         mat[0] = sx; mat[1] = 0.0; mat[2] = 0.0; mat[3] = 0.0
@@ -134,7 +134,7 @@ class Deformer {
                 (mat[0] * mat[5] * mat[10] + mat[1] * mat[6] * mat[8] + mat[2] * mat[4] * mat[9] - mat[0] * mat[6] * mat[9] - mat[1] * mat[4] * mat[10] - mat[2] * mat[5] * mat[8])
     }
 
-    fun getName(): CharArray? {
+    fun getName(): NameSet {
         return thisName
     }
 
@@ -166,22 +166,22 @@ class Deformer {
         var sca = DoubleArray(16, { 0.0 })
         MatrixScaling(
             sca,
-            Scaling[0]!!.getKeyValue(time),
-            Scaling[1]!!.getKeyValue(time),
-            Scaling[2]!!.getKeyValue(time)
+            Scaling[0].getKeyValue(time),
+            Scaling[1].getKeyValue(time),
+            Scaling[2].getKeyValue(time)
         )
         var rotx = DoubleArray(16, { 0.0 })
-        MatrixRotationX(rotx, Rotation[0]!!.getKeyValue(time))
+        MatrixRotationX(rotx, Rotation[0].getKeyValue(time))
         var roty = DoubleArray(16, { 0.0 })
-        MatrixRotationY(roty, Rotation[1]!!.getKeyValue(time))
+        MatrixRotationY(roty, Rotation[1].getKeyValue(time))
         var rotz = DoubleArray(16, { 0.0 })
-        MatrixRotationZ(rotz, Rotation[2]!!.getKeyValue(time))
+        MatrixRotationZ(rotz, Rotation[2].getKeyValue(time))
         var mov = DoubleArray(16, { 0.0 })
         MatrixTranslation(
             mov,
-            Translation[0]!!.getKeyValue(time),
-            Translation[1]!!.getKeyValue(time),
-            Translation[2]!!.getKeyValue(time)
+            Translation[0].getKeyValue(time),
+            Translation[1].getKeyValue(time),
+            Translation[2].getKeyValue(time)
         )
 
         var rotxy = DoubleArray(16, { 0.0 })

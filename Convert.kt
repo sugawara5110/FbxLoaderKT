@@ -1,7 +1,6 @@
 package jp.sugasato.fbxloaderkt
 
 import kotlin.math.pow
-import android.util.Log
 
 fun convertUCHARtoUINT(arr:UByteArray?,offset:Int):UInt {
     return ((arr!![3 + offset].toInt() shl 24) or (arr!![2 + offset].toInt() shl 16) or
@@ -48,21 +47,21 @@ fun convertUCHARtoUINT64(arr:UByteArray?,offset:Int):ULong {
 fun convertUCHARtoDouble(arr:UByteArray?,offset:Int):Double {
     //(-1)S × (1 + M) × 2E
     //S = 符号部(1bit), E = 指数部(11bit), M = 仮数部(52bit)
-    val sign = -1 * (arr!![7 + offset].toInt() shr 7 and 0x01)//1bit
-    val exponent = ((arr!![7 + offset].toInt() shl 8) or (arr!![6 + offset].toInt())) shr 4 and 0x7ff//11bit
-    val fraction =
+    val sign = 1.0 - 2.0 * (arr!![7 + offset].toInt() ushr 7 and 0x01)//1bit
+    val exponent = ((arr!![7 + offset].toInt() shl 4) or (arr!![6 + offset].toInt() ushr 4)) and 0x7ff//11bit
+    val fraction: ULong =
         (((arr!![6 + offset].toLong()).toULong() shl 48) or ((arr!![5 + offset].toLong()).toULong() shl 40) or
                 ((arr!![4 + offset].toLong()).toULong() shl 32) or ((arr!![3 + offset].toLong()).toULong() shl 24) or
                 ((arr!![2 + offset].toLong()).toULong() shl 16) or ((arr!![1 + offset].toLong()).toULong() shl 8) or
                 ((arr!![0 + offset].toLong()).toULong()))
     var sumfra = 0.0
     var siftfra = fraction
-    for (i: Int in 52..1 step -1) {
+    for (i: Int in 52 downTo 1) {
         val iDou: Double = i.toDouble()
         sumfra += ((siftfra and 0x01u).toInt()).toDouble() * 2.0.pow(-iDou)
         siftfra = siftfra shr 1
     }
-    return sign * (1.0 + sumfra) * 2.0.pow(exponent)
+    return sign * (1.0 + sumfra) * 2.0.pow(exponent - 1023)
 }
 
 fun ConvertUCHARtoDouble(arr:UByteArray?, offset:Int, outsize:Int):DoubleArray {
@@ -77,18 +76,18 @@ fun ConvertUCHARtoDouble(arr:UByteArray?, offset:Int, outsize:Int):DoubleArray {
 fun convertUCHARtoFloat(arr:UByteArray?,offset:Int):Float {
     //(-1)S × (1 + M) × 2E
     //S = 符号部(1bit), E = 指数部(8bit), M = 仮数部(23bit)
-    val sign = -1 * (arr!![3 + offset].toInt() shr 7 and 0x01)//1bit
-    val exponent = ((arr!![3 + offset].toInt() shl 1) or (arr!![2 + offset].toInt())) shr 7 and 0xff//8bit
-    val fraction =
-        (arr!![2 + offset].toInt() shl 16) or (arr!![1 + offset].toInt() shl 8) or (arr!![0 + offset].toInt())
+    val sign = 1.0 - 2.0 * (arr!![3 + offset].toInt() ushr 7 and 0x01)//1bit
+    val exponent = ((arr!![3 + offset].toInt() shl 1) or (arr!![2 + offset].toInt() ushr 7)) and 0xff//8bit
+    val fraction: UInt =
+        ((arr!![2 + offset].toUInt() shl 16) or (arr!![1 + offset].toUInt() shl 8) or (arr!![0 + offset].toUInt()))
     var sumfra = 0.0
     var siftfra = fraction
-    for (i: Int in 23..1 step -1) {
+    for (i: Int in 23 downTo 1) {
         val iDou: Double = i.toDouble()
-        sumfra += ((siftfra and 0x01).toInt()).toFloat() * 2.0.pow(-iDou)
+        sumfra += ((siftfra and 0x01u).toInt()).toFloat() * 2.0.pow(-iDou)
         siftfra = siftfra shr 1
     }
-    return (sign * (1.0 + sumfra) * 2.0.pow(exponent)).toFloat()
+    return (sign * (1.0 + sumfra) * 2.0.pow(exponent - 127)).toFloat()
 }
 
 fun ConvertUCHARtofloat(arr:UByteArray?, offset:Int, outsize:Int):FloatArray {
@@ -160,4 +159,8 @@ fun nameComparison(name1: CharArray?, name2: String): Boolean {
     var ch2 = CharArray(name2.length)
     for (i in 0..name2.length - 1) ch2[i] = name2[i]!!.toChar()
     return nameComparison(ch1, ch2)
+}
+
+fun nameComparison(name1: NameSet?, name2: String): Boolean {
+    return nameComparison(name1!!.getName(), name2)
 }

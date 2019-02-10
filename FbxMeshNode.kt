@@ -2,7 +2,7 @@ package jp.sugasato.fbxloaderkt
 
 class FbxMeshNode {
 
-    var Name: CharArray? = null
+    var Name: NameSet = NameSet()
     var vertices: DoubleArray? = null//頂点
     var NumVertices: Int = 0//頂点数, xyzで1組
     var polygonVertices: IntArray? = null//頂点インデックス
@@ -18,8 +18,8 @@ class FbxMeshNode {
     var deformer: Array<Deformer?> = arrayOfNulls(256)
     var rootDeformer: Deformer? = null
 
-    fun GetName(): CharArray? {
-        return Name;
+    fun GetName(): NameSet {
+        return Name
     }
 
     fun GetNumVertices(): Int {
@@ -51,11 +51,11 @@ class FbxMeshNode {
     }
 
     //Material
-    fun getMaterialName(layerIndex: Int): CharArray? {
+    fun getMaterialName(layerIndex: Int): NameSet {
         return material[layerIndex]!!.MaterialName
     }
 
-    fun getMaterialMappingInformationType(layerIndex: Int): CharArray? {
+    fun getMaterialMappingInformationType(layerIndex: Int): NameSet {
         return Material[layerIndex]!!.MappingInformationType
     }
 
@@ -64,11 +64,11 @@ class FbxMeshNode {
         return Material[layerIndex]!!.materials!![polygonNo]
     }
 
-    fun getDiffuseTextureName(Index: Int): CharArray? {
+    fun getDiffuseTextureName(Index: Int): NameSet {
         return material[Index]!!.textureDifName
     }
 
-    fun getNormalTextureName(Index: Int): CharArray? {
+    fun getNormalTextureName(Index: Int): NameSet {
         return material[Index]!!.textureNorName
     }
 
@@ -89,11 +89,11 @@ class FbxMeshNode {
         return Normals[layerIndex]!!.Numnormals
     }
 
-    fun getNormalName(layerIndex: Int): CharArray? {
+    fun getNormalName(layerIndex: Int): NameSet {
         return Normals[layerIndex]!!.name
     }
 
-    fun getNormalMappingInformationType(layerIndex: Int): CharArray? {
+    fun getNormalMappingInformationType(layerIndex: Int): NameSet {
         return Normals[layerIndex]!!.MappingInformationType
     }
 
@@ -106,11 +106,11 @@ class FbxMeshNode {
         return UV[layerIndex]!!.NumUV
     }
 
-    fun getUVName(layerIndex: Int): CharArray? {
+    fun getUVName(layerIndex: Int): NameSet {
         return UV[layerIndex]!!.name
     }
 
-    fun getUVMappingInformationType(layerIndex: Int): CharArray? {
+    fun getUVMappingInformationType(layerIndex: Int): NameSet {
         return UV[layerIndex]!!.MappingInformationType
     }
 
