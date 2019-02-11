@@ -380,7 +380,7 @@ class FbxLoader {
                             var texN = tex!!.nodeChildren!![i1]
                             val len = texN!!.nodeName[0]!!.getSize()
                             if (texTypeDiff) {
-                                if (null == mesh!!.material[materialIndex]!!.textureDifName) {
+                                if (null == mesh!!.material[materialIndex]!!.textureDifName.getName()) {
                                     mesh!!.material[materialIndex]!!.textureDifName!!.setSize(len)
                                     mesh!!.material[materialIndex]!!.textureDifName!!.setName(
                                         texN!!.nodeName[0]!!.getName(),
@@ -388,7 +388,7 @@ class FbxLoader {
                                     )
                                 }
                             } else {
-                                if (null == mesh!!.material[materialIndex]!!.textureNorName) {
+                                if (null == mesh!!.material[materialIndex]!!.textureNorName.getName()) {
                                     mesh!!.material[materialIndex]!!.textureNorName!!.setSize(len)
                                     mesh!!.material[materialIndex]!!.textureNorName!!.setName(
                                         texN!!.nodeName[0]!!.getName(),

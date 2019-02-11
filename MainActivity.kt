@@ -22,16 +22,16 @@ class MainActivity : AppCompatActivity() {
         fbx.setFbxFile(this, R.raw.player1_fbx_att)
 
         val NumMesh = fbx.getNumFbxMeshNode()
-        /*Log.d("TAG", "メッシュ数" + NumMesh)
+        Log.d("TAG", "メッシュ数" + NumMesh)
 
         for(i in 0..NumMesh - 1) {
             val mesh = fbx.getFbxMeshNode(i)
-            if (mesh!!.getNormalTextureName(0) != null) {
+            if (mesh!!.getNormalTextureName(0)!!.getName() != null) {
                 for (i1 in 0..mesh.getNormalTextureName(0).getSize() - 1) {
                     Log.d("TAG", "マテリアル毎のノーマルテクスチャ名" + mesh.getNormalTextureName(0)!!.getName()!![i1])
                 }
             }
-            if (mesh!!.getDiffuseTextureName(0) != null) {
+            if (mesh!!.getDiffuseTextureName(0)!!.getName() != null) {
                 for (i1 in 0..mesh.getDiffuseTextureName(0).getSize() - 1) {
                     Log.d("TAG", "マテリアル毎のディフェーズテクスチャ名" + mesh.getDiffuseTextureName(0)!!.getName()!![i1])
                 }
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
             Log.d("TAG", "マテリアル毎スぺキュラ色" + mesh.getSpecularColor(0,0))
             Log.d("TAG", "マテリアル毎スぺキュラ色" + mesh.getSpecularColor(0,1))
             Log.d("TAG", "マテリアル毎スぺキュラ色" + mesh.getSpecularColor(0,2))
-        }*/
+        }
 
         for (i in 0..NumMesh - 1) {
             val mesh = fbx.getFbxMeshNode(i)
@@ -103,12 +103,12 @@ class MainActivity : AppCompatActivity() {
             val bname2 = defo.getName()
             for (i1 in 0..mesh.GetNumDeformer() - 1) {
                 for (i2 in 0..bname2.getSize() - 1) {
-                    Log.d("TAG", "ボーン名" + bname2.getName()!![i2])
+                   //Log.d("TAG", "ボーン名" + bname2.getName()!![i2])
                 }
-                Log.d("TAG", "ボーン毎の影響受ける頂点インデックス数" + bNum)
+                //Log.d("TAG", "ボーン毎の影響受ける頂点インデックス数" + bNum)
                 for (i2 in 0..bNum - 1) {
-                    Log.d("TAG", "ボーン毎の影響受ける頂点インデックス" + bInd!![i2])
-                    Log.d("TAG", "ボーン毎の影響受ける頂点ウエイト" + bWei!![i2])
+                   // Log.d("TAG", "ボーン毎の影響受ける頂点インデックス" + bInd!![i2])
+                   // Log.d("TAG", "ボーン毎の影響受ける頂点ウエイト" + bWei!![i2])
                 }
             }
         }
@@ -119,11 +119,11 @@ class MainActivity : AppCompatActivity() {
             val defo = mesh.getDeformer(i)
             val bname2 = defo!!.getName()
             for (i2 in 0..bname2.getSize() - 1) {
-                Log.d("TAG", "ボーン名" + bname2.getName()!![i2])
+              //  Log.d("TAG", "ボーン名" + bname2.getName()!![i2])
             }
             for (y in 0..3) {
                 for (x in 0..3) {
-                    Log.d("TAG", "TransformLinkMatrix" + defo.getTransformLinkMatrix(y, x))
+                //    Log.d("TAG", "TransformLinkMatrix" + defo.getTransformLinkMatrix(y, x))
                 }
             }
         }
@@ -132,12 +132,12 @@ class MainActivity : AppCompatActivity() {
             val defo = mesh.getDeformer(i)
             val bname2 = defo!!.getName()
             for (i2 in 0..bname2.getSize() - 1) {
-                Log.d("TAG", "ボーン名" + bname2.getName()!![i2])
+              //  Log.d("TAG", "ボーン名" + bname2.getName()!![i2])
             }
             defo.EvaluateGlobalTransform(0)
             for (y in 0..3) {
                 for (x in 0..3) {
-                    Log.d("TAG", "getEvaluateGlobalTransform" + defo.getEvaluateGlobalTransform(y, x))
+                   // Log.d("TAG", "getEvaluateGlobalTransform" + defo.getEvaluateGlobalTransform(y, x))
                 }
             }
         }
