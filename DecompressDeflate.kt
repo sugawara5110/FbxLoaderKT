@@ -175,19 +175,11 @@ class DecompressDeflate {
     private fun SortIndex(sortedIndex: UShortArray, hclens: UByteArray, size: Int): Pair<UShortArray, UByteArray> {
         val topSize: Int = (size * 0.5).toInt()
         val halfSize = size - topSize
-        var topSortedIndex = UShortArray(topSize)
-        var halfSortedIndex = UShortArray(halfSize)
-        var tophclens = UByteArray(topSize)
-        var halfhclens = UByteArray(halfSize)
 
-        for (i: Int in 0..topSize - 1 step 1) {
-            topSortedIndex[i] = sortedIndex[i]
-            tophclens[i] = hclens[i]
-        }
-        for (i: Int in 0..halfSize - 1 step 1) {
-            halfSortedIndex[i] = sortedIndex[i + topSize]
-            halfhclens[i] = hclens[i + topSize]
-        }
+        var topSortedIndex = sortedIndex.copyOfRange(0, topSize)
+        var tophclens = hclens.copyOfRange(0, topSize)
+        var halfSortedIndex = sortedIndex.copyOfRange(topSize, topSize + halfSize)
+        var halfhclens = hclens.copyOfRange(topSize, topSize + halfSize)
 
         if (topSize > 1) {
             val pair = SortIndex(topSortedIndex, tophclens, topSize)
@@ -349,14 +341,8 @@ class DecompressDeflate {
         }
         //文字/一致長符号長表,距離符号長表からそれぞれの符号表を生成する
         //文字/一致長符号長表,距離符号長表に分割する
-        var strSigLenList = UByteArray(strSigLen.toInt(), { 0u })
-        var destSigLenList = UByteArray(destSigLen.toInt(), { 0u })
-        for (i in 0..strSigLen.toInt() - 1 step 1) {
-            strSigLenList[i] = sigLenList[i]
-        }
-        for (i in 0..destSigLen.toInt() - 1 step 1) {
-            destSigLenList[i] = sigLenList[i + strSigLen.toInt()]
-        }
+        var strSigLenList = sigLenList.copyOfRange(0, strSigLen.toInt())
+        var destSigLenList = sigLenList.copyOfRange(strSigLen.toInt(), strSigLen.toInt() + destSigLen.toInt())
 
         var strSigLenListCopy = strSigLenList.copyOf()
         var destSigLenListCopy = destSigLenList.copyOf()
