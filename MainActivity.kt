@@ -18,33 +18,34 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        Log.d("TAG", "スタート")
         var fbx: FbxLoader = FbxLoader()
         fbx.setFbxFile(this, R.raw.player1_fbx_att)
 
         val NumMesh = fbx.getNumFbxMeshNode()
-        Log.d("TAG", "メッシュ数" + NumMesh)
+        //Log.d("TAG", "メッシュ数" + NumMesh)
 
         for(i in 0..NumMesh - 1) {
             val mesh = fbx.getFbxMeshNode(i)
             if (mesh!!.getNormalTextureName(0)!!.getName() != null) {
                 for (i1 in 0..mesh.getNormalTextureName(0).getSize() - 1) {
-                    Log.d("TAG", "マテリアル毎のノーマルテクスチャ名" + mesh.getNormalTextureName(0)!!.getName()!![i1])
+                    //Log.d("TAG", "マテリアル毎のノーマルテクスチャ名" + mesh.getNormalTextureName(0)!!.getName()!![i1])
                 }
             }
             if (mesh!!.getDiffuseTextureName(0)!!.getName() != null) {
                 for (i1 in 0..mesh.getDiffuseTextureName(0).getSize() - 1) {
-                    Log.d("TAG", "マテリアル毎のディフェーズテクスチャ名" + mesh.getDiffuseTextureName(0)!!.getName()!![i1])
+                    //Log.d("TAG", "マテリアル毎のディフェーズテクスチャ名" + mesh.getDiffuseTextureName(0)!!.getName()!![i1])
                 }
             }
             for (i1 in 0..mesh.getMaterialName(0).getSize() - 1) {
-                Log.d("TAG", "マテリアル毎マテリアル名" + mesh.getMaterialName(0)!!.getName()!![i1])
+                //Log.d("TAG", "マテリアル毎マテリアル名" + mesh.getMaterialName(0)!!.getName()!![i1])
             }
-            Log.d("TAG", "マテリアル毎ディフェーズ色" + mesh.getDiffuseColor(0,0))
+            /*Log.d("TAG", "マテリアル毎ディフェーズ色" + mesh.getDiffuseColor(0,0))
             Log.d("TAG", "マテリアル毎ディフェーズ色" + mesh.getDiffuseColor(0,1))
             Log.d("TAG", "マテリアル毎ディフェーズ色" + mesh.getDiffuseColor(0,2))
             Log.d("TAG", "マテリアル毎スぺキュラ色" + mesh.getSpecularColor(0,0))
             Log.d("TAG", "マテリアル毎スぺキュラ色" + mesh.getSpecularColor(0,1))
-            Log.d("TAG", "マテリアル毎スぺキュラ色" + mesh.getSpecularColor(0,2))
+            Log.d("TAG", "マテリアル毎スぺキュラ色" + mesh.getSpecularColor(0,2))*/
         }
 
         for (i in 0..NumMesh - 1) {
@@ -54,48 +55,48 @@ class MainActivity : AppCompatActivity() {
             val vertices = mesh!!.GetVertices()
             val NumIndex = mesh!!.GetNumPolygonVertices()
             val Index = mesh!!.GetPolygonVertices()
-            /*Log.d("TAG", "メッシュName長さ: " + meshName!!.getSize())
+            Log.d("TAG", "メッシュName長さ: " + meshName!!.getSize())
             for (i1 in 0..meshName!!.getSize() - 1) {
                 Log.d("TAG", "メッシュName: " + meshName!!.getName()!![i1])
             }
-            Log.d("TAG", "頂点インデックス数: " + mesh.GetNumPolygonVertices())
+            //Log.d("TAG", "頂点インデックス数: " + mesh.GetNumPolygonVertices())
             for (i1 in 0..20) {
-                Log.d("TAG", "頂点インデックス: " + Index!![i1])
+               // Log.d("TAG", "頂点インデックス: " + Index!![i1])
             }
             for (i1 in NumIndex - 20..NumIndex - 1) {
-                Log.d("TAG", "頂点インデックス: " + Index!![i1])
+                //Log.d("TAG", "頂点インデックス: " + Index!![i1])
             }
-            Log.d("TAG", "頂点インデックス数: " + NumVertices)
+            //Log.d("TAG", "頂点インデックス数: " + NumVertices)
             for (i1 in 0..20) {
                 Log.d("TAG", "頂点" + vertices!![i1])
             }
             for (i1 in NumVertices - 20..NumVertices - 1) {
                 Log.d("TAG", "頂点" + vertices!![i1])
             }
-            Log.d("TAG", "メッシュ毎マテリアル数" + mesh.GetNumMaterial())
-            Log.d("TAG", "メッシュ毎ポリゴン数" + mesh.GetNumPolygon())
+           // Log.d("TAG", "メッシュ毎マテリアル数" + mesh.GetNumMaterial())
+           // Log.d("TAG", "メッシュ毎ポリゴン数" + mesh.GetNumPolygon())
             for (i1 in 0..20) {
-                Log.d("TAG", "ポリゴン毎の頂点インデックス数" + mesh.getPolygonSize(i1))
+           //     Log.d("TAG", "ポリゴン毎の頂点インデックス数" + mesh.getPolygonSize(i1))
             }
             for (i1 in mesh.GetNumPolygon() - 20..mesh.GetNumPolygon() - 1) {
-                Log.d("TAG", "ポリゴン毎の頂点インデックス数" + mesh.getPolygonSize(i1))
+           //     Log.d("TAG", "ポリゴン毎の頂点インデックス数" + mesh.getPolygonSize(i1))
             }
             val nor = mesh.getNormal(0)
             for (i1 in 0..20) {
-                Log.d("TAG", "ポリゴン毎の法線" + nor!![i1])
+          //      Log.d("TAG", "ポリゴン毎の法線" + nor!![i1])
             }
             for (i1 in mesh.getNumNormal(0) - 20..mesh.getNumNormal(0) - 1) {
-                Log.d("TAG", "ポリゴン毎の法線" + nor!![i1])
+          //      Log.d("TAG", "ポリゴン毎の法線" + nor!![i1])
             }
             val uv = mesh.getAlignedUV(0)
             for (i1 in 0..20) {
-                Log.d("TAG", "ポリゴン毎のUV" + uv!![i1])
+            //    Log.d("TAG", "ポリゴン毎のUV" + uv!![i1])
             }
             for (i1 in mesh.getNumUV(0) - 20..mesh.getNumUV(0) - 1) {
-                Log.d("TAG", "ポリゴン毎のUV" + uv!![i1])
-            }*/
+            //    Log.d("TAG", "ポリゴン毎のUV" + uv!![i1])
+            }
 
-            Log.d("TAG", "メッシュ毎のボーン数" + mesh.GetNumDeformer())
+           // Log.d("TAG", "メッシュ毎のボーン数" + mesh.GetNumDeformer())
             val defo = mesh.getDeformer(i)
             val bNum = defo!!.getIndicesCnt()
             val bInd = defo.GetIndices()

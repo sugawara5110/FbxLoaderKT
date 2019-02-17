@@ -19,15 +19,49 @@ class DecompressDeflate {
     private var lenSign = UShortArray(30, { 0u })
     private var lenNumSign = UByteArray(30, { 0u })
 
+    private val LEFT_INV_BIT1 = 0b0101010101010101
+    private val RIGHT_INV_BIT1 = 0b1010101010101010
+    private val LEFT_INV_BIT2 = 0b0011001100110011
+    private val RIGHT_INV_BIT2 = 0b1100110011001100
+    private val LEFT_INV_BIT4 = 0b0000111100001111
+    private val RIGHT_INV_BIT4 = 0b1111000011110000
+
+    private val bitMask: IntArray =
+        intArrayOf(
+            0b0000000000000000,
+            0b0000000000000001,
+            0b0000000000000011,
+            0b0000000000000111,
+            0b0000000000001111,
+            0b0000000000011111,
+            0b0000000000111111,
+            0b0000000001111111,
+            0b0000000011111111,
+            0b0000000111111111,
+            0b0000001111111111,
+            0b0000011111111111,
+            0b0000111111111111,
+            0b0001111111111111,
+            0b0011111111111111,
+            0b0111111111111111,
+            0b1111111111111111
+        )
+
+    private fun intInversion(ba: Int, numBit: Int): Int {//Max16bit
+        var oBa = 0
+        val baseNum = 16
+        //shl 左シフト  shr 符号付き右シフト ushr 符号無し右シフト
+        oBa = ((ba and LEFT_INV_BIT1) shl 1) or ((ba and RIGHT_INV_BIT1) ushr 1)
+        oBa = ((oBa and LEFT_INV_BIT2) shl 2) or ((oBa and RIGHT_INV_BIT2) ushr 2)
+        oBa = ((oBa and LEFT_INV_BIT4) shl 4) or ((oBa and RIGHT_INV_BIT4) ushr 4)
+        return ((oBa shl 8) or (oBa ushr 8)) ushr (baseNum - numBit)
+    }
+
     private fun bitInversion(ba: UByteArray, size: Int): UByteArray {
         var baB = ba.copyOf()
         for (i: Int in 0..size - 1 step 1) {
-            //shl 左シフト  shr 符号付き右シフト ushr 符号無し右シフト
-            var baI: UInt = baB[i].toUInt()
-            baI = ((baI and 0x55u) shl 1) or ((baI and 0xAAu).toInt().ushr(1).toUInt())//0x55:01010101, 0xAA:10101010
-            baI = ((baI and 0x33u) shl 2) or ((baI and 0xCCu).toInt().ushr(2).toUInt())//0x33:00110011, 0xCC:11001100
-            baI = (baI shl 4) or (baI.toInt().ushr(4).toUInt())
-            baB[i] = baI.toUByte()
+            var baI: Int = baB[i].toInt()
+            baB[i] = intInversion(baI, 8).toUByte()
         }
         return baB
     }
@@ -93,21 +127,16 @@ class DecompressDeflate {
         NumBit: UByte,
         firstRight: Boolean
     ): Pair<ULong, UShort> {
-        var outBinArr = 0u
         var curSearchBit = CurSearchBit
-        for (i: Int in 0..(NumBit - 1.toUByte()).toInt() step 1) {
-            val baind: UInt = (curSearchBit / byteArrayNumbit).toUInt()//配列インデックス
-            val searBit: UInt = (curSearchBit % byteArrayNumbit).toUInt()//要素内bit位置インデックス
-            val NumShift: UByte = (byteArrayNumbit.toUInt() - 1u - searBit.toUByte()).toUByte()
-            val popbit: UByte =
-                ((byteArray[baind.toInt()].toInt() ushr NumShift.toInt()) and 0x01).toUByte()//目的bit取り出し, bit位置最右
-            var NumShift16: UByte = (NumBit - 1u - i.toUByte()).toUByte()//符号用左から詰める
-            if (firstRight) NumShift16 = i.toUByte()//右から詰める
-            val posbit16: UShort = (popbit.toInt() shl NumShift16.toInt()).toUShort()
-            outBinArr = (outBinArr or posbit16.toUInt()) //bit追加
-            curSearchBit++
-        }
-        return Pair(curSearchBit, outBinArr.toUShort())
+        val baind: UInt = (curSearchBit / byteArrayNumbit).toUInt()//配列インデックス
+        val bitPos: UInt = (curSearchBit % byteArrayNumbit).toUInt()//要素内bit位置インデックス
+        val shiftBit = byteArrayNumbit * 3u - NumBit - bitPos
+        var outBitArr = (((byteArray[baind.toInt()].toInt() shl 16) or
+                (byteArray[baind.toInt() + 1].toInt() shl 8) or
+                byteArray[baind.toInt() + 2].toInt()) ushr shiftBit.toInt()) and bitMask[NumBit.toInt()]
+        if (firstRight) outBitArr = intInversion(outBitArr, NumBit.toInt())
+        curSearchBit += NumBit
+        return Pair(curSearchBit, outBitArr.toUShort())
     }
 
     private fun createFixedHuffmanSign() {
@@ -115,10 +144,10 @@ class DecompressDeflate {
         var init286b = UByteArray(286, { 0u })
         var init30s = UShortArray(30, { 0u })
         var init30b = UByteArray(30, { 0u })
-        strSign = init286s.copyOf()
-        strNumSign = init286b.copyOf()
-        lenSign = init30s.copyOf()
-        lenNumSign = init30b.copyOf()
+        strSign = init286s
+        strNumSign = init286b
+        lenSign = init30s
+        lenNumSign = init30b
         for (i: Int in 0..286 - 1 step 1) {
             if (0 <= i && i <= 143) {
                 strSign[i] = (i + 48).toUShort()
@@ -162,13 +191,13 @@ class DecompressDeflate {
 
         if (topSize > 1) {
             val pair = SortIndex(topSortedIndex, tophclens, topSize)
-            topSortedIndex = pair.first.copyOf()
-            tophclens = pair.second.copyOf()
+            topSortedIndex = pair.first
+            tophclens = pair.second
         }
         if (halfSize > 1) {
             val pair = SortIndex(halfSortedIndex, halfhclens, halfSize)
-            halfSortedIndex = pair.first.copyOf()
-            halfhclens = pair.second.copyOf()
+            halfSortedIndex = pair.first
+            halfhclens = pair.second
         }
 
         var topIndex = 0
@@ -348,10 +377,10 @@ class DecompressDeflate {
         strSigList = CreateSign(strSigList, strSigLenList, strSigLenListSortedIndex, strSigLen.toInt());
         destSigList = CreateSign(destSigList, destSigLenList, destSigLenListSortedIndex, destSigLen.toInt());
 
-        strSign = strSigList.copyOf()
-        strNumSign = strSigLenList.copyOf()
-        lenSign = destSigList.copyOf()
-        lenNumSign = destSigLenList.copyOf()
+        strSign = strSigList
+        strNumSign = strSigLenList
+        lenSign = destSigList
+        lenNumSign = destSigLenList
 
         return curSearchBit
     }
@@ -476,7 +505,7 @@ class DecompressDeflate {
                     val un = Uncompress(curSearchBit, bA, outIndex, outArray)
                     curSearchBit = un.first
                     outIndex = un.second
-                    outArray = un.third.copyOf()
+                    outArray = un.third
                 }
                 1 -> {
                     createFixedHuffmanSign()
@@ -492,7 +521,7 @@ class DecompressDeflate {
                 val dh = DecompressHuffman(curSearchBit, bA, outIndex, outArray)
                 curSearchBit = dh.first
                 outIndex = dh.second
-                outArray = dh.third.copyOf()
+                outArray = dh.third
             }
         }
         return outArray
