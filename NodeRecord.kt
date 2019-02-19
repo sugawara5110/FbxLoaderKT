@@ -30,7 +30,7 @@ class NameSet {
         var nullPos = Size
         for (i in 0..Size - 1) {
             if (name!![index + i].toByte() == 0x00.toByte()) {
-                if (name!![index + i + 1].toByte() == 0x01.toByte()) {
+                if (name[index + i + 1].toByte() == 0x01.toByte()) {
                     nullPos = i
                 }
             }
@@ -58,11 +58,11 @@ class NameSet {
 
 class NodeRecord {
 
-    val NUMNODENAME = 10
+    private val NUMNODENAME = 10
     //全てリトルエンディアン
-    var EndOffset: UInt = 0u//次のファイルの先頭バイト数
-    var NumProperties: Int = 0//プロパティの数
-    var PropertyListLen: Int = 0//プロパティリストの大きさ(byte)
+    private var EndOffset: UInt = 0u//次のファイルの先頭バイト数
+    private var NumProperties: Int = 0//プロパティの数
+    private var PropertyListLen: Int = 0//プロパティリストの大きさ(byte)
     var className: NameSet = NameSet()
     var Property: UByteArray? = null//(型type, そのdataの順で並んでる) * プロパティの数
 
@@ -70,10 +70,10 @@ class NodeRecord {
     var NumChildren: Int = 0
     var nodeChildren: Array<NodeRecord?>? = null//{}内のノード, NodeRecord配列用
 
-    var thisConnectionID: Long = -1L
+    private var thisConnectionID: Long = -1L
     var connectionNode: ArrayList<NodeRecord?> = arrayListOf() //NodeRecord接続用(.add(要素)で追加)
 
-    fun searchName_Type(cn: ArrayList<ConnectionNo?>) {
+    private fun searchName_Type(cn: ArrayList<ConnectionNo?>) {
         var swt = 0
         var ln = 0
         var nameNo = 0
@@ -82,13 +82,13 @@ class NodeRecord {
             when (swt) {
                 3 -> {
                     //Lの処理
-                    var name4 = CharArray(4)
-                    val end = className!!.getSize() - 1
+                    val name4 = CharArray(4)
+                    val end = className.getSize() - 1
                     var st = end - 3
                     if (st < 0) st = 0
                     var name4Cnt = 0
                     for (i in st..end) {
-                        name4[name4Cnt++] = className!!.getName()!![i]
+                        name4[name4Cnt++] = className.getName()!![i]
                     }
 
                     if (nameComparison(name4, "Time")) {
@@ -103,7 +103,7 @@ class NodeRecord {
                     }
                 }
                 2 -> {
-                    nodeName[nameNo]!!.setName(Property, loop)
+                    nodeName[nameNo].setName(Property, loop)
                     nameNo++
                     if (nameNo >= NUMNODENAME) return
                     loop += ln - 1
@@ -113,7 +113,7 @@ class NodeRecord {
                     ln = (Property!![loop + 3].toInt() shl 24) or (Property!![loop + 2].toInt() shl 16) or
                             (Property!![loop + 1].toInt() shl 8) or (Property!![loop].toInt())
                     if (ln > 0) {
-                        nodeName[nameNo]!!.setSize(ln)
+                        nodeName[nameNo].setSize(ln)
                         loop += 3
                         swt = 2
                     } else {
@@ -160,15 +160,15 @@ class NodeRecord {
             loop++
         }
         if (thisConnectionID != -1L) {
-            var tmp: ConnectionNo = ConnectionNo()
+            val tmp: ConnectionNo = ConnectionNo()
             tmp.ConnectionID = thisConnectionID
             tmp.ConnectionIDPointer = this
             cn.add(tmp)
         }
     }
 
-    fun createConnectionList(cnLi: ArrayList<ConnectionList?>) {
-        var cl: ConnectionList = ConnectionList()
+    private fun createConnectionList(cnLi: ArrayList<ConnectionList?>) {
+        val cl: ConnectionList = ConnectionList()
         //S len "OO" L 計8byteの次にChildID
         cl.ChildID = convertUCHARtoint64(Property, 8)
         //L 1byteの次にParentID
@@ -182,9 +182,9 @@ class NodeRecord {
         PropertyListLen = fp.convertBYTEtoUINT().toInt()
         val classNameLen = fp.getByte().toInt()
         className.setSize(classNameLen)
-        var classname = CharArray(classNameLen)
+        val classname = CharArray(classNameLen)
         for (i in 0..classNameLen - 1) {
-            classname!![i] = fp.getByte().toByte().toChar()
+            classname[i] = fp.getByte().toByte().toChar()
         }
         className.setName(classname, 0)
         if (PropertyListLen > 0) {
@@ -205,7 +205,7 @@ class NodeRecord {
         //現在のファイルポインタがEndOffsetより手前,かつ
         //現ファイルポインタから4byteが全て0ではない場合, 子ノード有り
         if (EndOffset > curpos && fp.convertBYTEtoUINT() != 0u) {
-            var topChildPointer = curpos
+            val topChildPointer = curpos
             var childEndOffset = 0u
             //子ノードEndOffsetをたどり,個数カウント
             do {

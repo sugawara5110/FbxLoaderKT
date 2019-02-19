@@ -58,16 +58,16 @@ class DecompressDeflate {
     }
 
     private fun bitInversion(ba: UByteArray, size: Int): UByteArray {
-        var baB = ba.copyOf()
+        val baB = ba.copyOf()
         for (i: Int in 0..size - 1 step 1) {
-            var baI: Int = baB[i].toInt()
+            val baI: Int = baB[i].toInt()
             baB[i] = intInversion(baI, 8).toUByte()
         }
         return baB
     }
 
     private fun getLength(value: UShort): Pair<UShort, UByte> {
-        var va = value
+        val va = value
         var len: UShort = 0u
         var bitlen: UByte = 0u
         if (257u <= va && va <= 264u) {
@@ -112,7 +112,7 @@ class DecompressDeflate {
         MatchLen: UShort,
         destLen: UShort
     ): Int {
-        var srcInd = outIndex - destLen.toInt()
+        val srcInd = outIndex - destLen.toInt()
         for (i: Int in 0..(MatchLen - 1u).toInt() step 1) {
             var sind = i % destLen.toShort()
             outArray[i + outIndex] = outArray[sind + srcInd]
@@ -140,10 +140,10 @@ class DecompressDeflate {
     }
 
     private fun createFixedHuffmanSign() {
-        var init286s = UShortArray(286, { 0u })
-        var init286b = UByteArray(286, { 0u })
-        var init30s = UShortArray(30, { 0u })
-        var init30b = UByteArray(30, { 0u })
+        val init286s = UShortArray(286, { 0u })
+        val init286b = UByteArray(286, { 0u })
+        val init30s = UShortArray(30, { 0u })
+        val init30b = UByteArray(30, { 0u })
         strSign = init286s
         strNumSign = init286b
         lenSign = init30s
@@ -250,12 +250,12 @@ class DecompressDeflate {
         var HDIST: UShort = 0u//距離符号の個数5bit
         var HCLEN: UShort = 0u//符号長表の符号長表のサイズ4bit
         val MaxBit = ubyteArrayOf(5u, 5u, 4u)
-        var tmp = UShortArray(3, { 0u })
+        val tmp = UShortArray(3, { 0u })
         //HLIT、HDIST、HCLEN、符号長表の符号長表、拡張ビットは値なので右詰め,
         //符号は左詰め
         var curSearchBit = CurSearchBit
         for (i: Int in 0..3 - 1 step 1) {
-            var pair = getBit(curSearchBit, byteArray, MaxBit[i], true)
+            val pair = getBit(curSearchBit, byteArray, MaxBit[i], true)
             curSearchBit = pair.first
             tmp[i] = pair.second
         }
@@ -265,20 +265,20 @@ class DecompressDeflate {
         //(HCLEN + 4) * 3 のビット読み込み
         val NumSign = 19
         //符号長表の符号長表作成
-        var hclens = UByteArray(NumSign, { 0u })//符号長配列
+        val hclens = UByteArray(NumSign, { 0u })//符号長配列
         var clens = UShortArray(NumSign, { 0u })//符号配列
         //16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15の順番で要素データが並んでる,符号長を表している
         val SignInd = ubyteArrayOf(16u, 17u, 18u, 0u, 8u, 7u, 9u, 6u, 10u, 5u, 11u, 4u, 12u, 3u, 13u, 2u, 14u, 1u, 15u)
         val numroop = HCLEN + 4u
         //読み込んだ順に上記のインデックス順に配列に格納, 上記の符号長の符号の長さを表している
         for (i: Int in 0..numroop.toInt() - 1 step 1) {
-            var pair = getBit(curSearchBit, byteArray, 3u, true)//符号長数を読み込む
+            val pair = getBit(curSearchBit, byteArray, 3u, true)//符号長数を読み込む
             curSearchBit = pair.first
             hclens[SignInd[i].toInt()] = pair.second.toUByte()
         }
         //符号長が小さい順に並べる, (0個以外)
         var SortedIndex = UShortArray(NumSign, { 0u })//ソート後のインデックス配列
-        var hclensCopy = hclens.copyOf()
+        val hclensCopy = hclens.copyOf()
 
         for (i: Int in 0..NumSign - 1 step 1) SortedIndex[i] = i.toUShort()//ソートインデックス初期化
         //インデックスソート
@@ -286,7 +286,7 @@ class DecompressDeflate {
         //長さの短い符号から順に連番で符号を付与する
         //短い符号から長い符号へは短い符号→長い符号の上位『短い符号のビット数』ビットだけ短い符号の次の番号+残りのビットは0
         //例: 000 → 001 → 01000 → 01001
-        var pair = SortIndex(SortedIndex, hclensCopy, NumSign)
+        val pair = SortIndex(SortedIndex, hclensCopy, NumSign)
         SortedIndex = pair.first
 
         //文字/一致長符号長表,距離符号長表生成の為の符号表生成
@@ -295,7 +295,7 @@ class DecompressDeflate {
         //文字/一致長符号長表,距離符号長表生成
         val strSigLen = HLIT + 257u
         val destSigLen = HDIST + 1u
-        var sigLenList = UByteArray((strSigLen + destSigLen).toInt(), { 0u })
+        val sigLenList = UByteArray((strSigLen + destSigLen).toInt(), { 0u })
         var firstIndex = 0
         while (hclens[SortedIndex[firstIndex++].toInt()] == 0.toUByte());
         firstIndex--
@@ -327,7 +327,7 @@ class DecompressDeflate {
                         //0符号を11~138回繰り返す18の後7bit
                         val pair = getBit(curSearchBit, byteArray, 7u, true)
                         curSearchBit = pair.first
-                        var obit = pair.second.toInt()
+                        val obit = pair.second.toInt()
                         for (i18 in 0..obit + 11 - 1 step 1) sigLenList[sigLenInd++] = 0u
                         break
                     }
@@ -341,11 +341,11 @@ class DecompressDeflate {
         }
         //文字/一致長符号長表,距離符号長表からそれぞれの符号表を生成する
         //文字/一致長符号長表,距離符号長表に分割する
-        var strSigLenList = sigLenList.copyOfRange(0, strSigLen.toInt())
-        var destSigLenList = sigLenList.copyOfRange(strSigLen.toInt(), strSigLen.toInt() + destSigLen.toInt())
+        val strSigLenList = sigLenList.copyOfRange(0, strSigLen.toInt())
+        val destSigLenList = sigLenList.copyOfRange(strSigLen.toInt(), strSigLen.toInt() + destSigLen.toInt())
 
-        var strSigLenListCopy = strSigLenList.copyOf()
-        var destSigLenListCopy = destSigLenList.copyOf()
+        val strSigLenListCopy = strSigLenList.copyOf()
+        val destSigLenListCopy = destSigLenList.copyOf()
 
         var strSigLenListSortedIndex = UShortArray(strSigLen.toInt(), { 0u })
         var destSigLenListSortedIndex = UShortArray(destSigLen.toInt(), { 0u })
@@ -355,9 +355,9 @@ class DecompressDeflate {
         for (i in 0..strSigLen.toInt() - 1 step 1) strSigLenListSortedIndex[i] = i.toUShort()
         for (i in 0..destSigLen.toInt() - 1 step 1) destSigLenListSortedIndex[i] = i.toUShort()
         //符号生成前に小さい順番にソート
-        var si1 = SortIndex(strSigLenListSortedIndex, strSigLenListCopy, strSigLen.toInt())
+        val si1 = SortIndex(strSigLenListSortedIndex, strSigLenListCopy, strSigLen.toInt())
         strSigLenListSortedIndex = si1.first
-        var si2 = SortIndex(destSigLenListSortedIndex, destSigLenListCopy, destSigLen.toInt())
+        val si2 = SortIndex(destSigLenListSortedIndex, destSigLenListCopy, destSigLen.toInt())
         destSigLenListSortedIndex = si2.first
         //文字/一致長符号表,距離符号表生成
         strSigList = CreateSign(strSigList, strSigLenList, strSigLenListSortedIndex, strSigLen.toInt());
@@ -379,7 +379,7 @@ class DecompressDeflate {
     ): Triple<ULong, Int, UByteArray> {
         var curSearchBit = CurSearchBit
         var outIndex = OutIndex
-        var outArray = OutArray.copyOf()
+        val outArray = OutArray.copyOf()
         var roop = true
         while (roop) {
             for (va in 0..286 - 1) {
@@ -403,7 +403,7 @@ class DecompressDeflate {
                         val bitlen: UByte = pair.second
                         val pair1 = getBit(curSearchBit, byteArray, bitlen, true)//拡張ビット読み込み,数値なのでリトルエンディアン
                         curSearchBit = pair1.first
-                        var outExpansionBit: UShort = pair1.second.toUShort()
+                        val outExpansionBit: UShort = pair1.second.toUShort()
                         val matchlen = MatchLen + outExpansionBit//拡張ビット有った場合, 一致長に足す
                         MatchLen = matchlen.toUShort()
                         //距離値処理
@@ -443,11 +443,11 @@ class DecompressDeflate {
     ): Triple<ULong, Int, UByteArray> {
         var curSearchBit = CurSearchBit
         var outIndex = OutIndex
-        var outArray = OutArray.copyOf()
+        val outArray = OutArray.copyOf()
         while (curSearchBit % byteArrayNumbit != 0uL) {
             curSearchBit++
         }//次のbyte境界までdata無しなので飛ばす
-        var gb1 = getBit(curSearchBit, byteArray, 16u, true)
+        val gb1 = getBit(curSearchBit, byteArray, 16u, true)
         curSearchBit = gb1.first
         val LEN = gb1.second//2byte NLENの後から続くdataのbyte数
         val gb2 = getBit(curSearchBit, byteArray, 16u, true)
@@ -474,7 +474,7 @@ class DecompressDeflate {
     fun getDecompressArray(ba: UByteArray, size: Int, outSize: Int): UByteArray {
         var curSearchBit: ULong = 0u//現bit位置
         var outIndex: Int = 0//outArrayはBYTE単位で書き込み
-        var bA = bitInversion(ba, size)
+        val bA = bitInversion(ba, size)
         var outArray = UByteArray(outSize, { 0u })
         var roop = true
         while (roop) {

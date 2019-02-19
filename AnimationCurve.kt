@@ -19,11 +19,11 @@ class AnimationCurve {
             Ind++
         }
         if (Ind >= NumKey.toInt()) return KeyValueFloat!![NumKey.toInt() - 1].toDouble()
-        var differenceTime = KeyTime!![Ind] - KeyTime!![Ind - 1]
-        var tmp1 = ti - KeyTime!![Ind - 1]
+        val differenceTime = KeyTime!![Ind] - KeyTime!![Ind - 1]
+        val tmp1 = ti - KeyTime!![Ind - 1]
         val mag = tmp1 / differenceTime
-        var differenceVal = KeyValueFloat!![Ind] - KeyValueFloat!![Ind - 1]
-        var addVal = differenceVal * mag
+        val differenceVal = KeyValueFloat!![Ind] - KeyValueFloat!![Ind - 1]
+        val addVal = differenceVal * mag
         return (KeyValueFloat!![Ind - 1] + addVal).toDouble()
     }
 }
