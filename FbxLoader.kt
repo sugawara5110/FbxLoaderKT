@@ -67,10 +67,10 @@ class FbxLoader {
         //ノードIDの通りにノードを繋げる
         for (i in 0..cnLi.size - 1) {
             for (j in 0..cnNo.size - 1) {
-                if (cnLi[i]!!.ParentID == cnNo[j]!!.ConnectionID) {//親ノードのポインタ検索
+                if (cnLi[i]!!.ParentID == cnNo[j]!!.ConnectionID) {//親ノード検索
                     for (j1 in 0..cnNo.size - 1) {
-                        if (cnLi[i]!!.ChildID == cnNo[j1]!!.ConnectionID) {//子ノードのポインタ検索
-                            //親ノード内connectionNodeへ子ノードポインタ追加
+                        if (cnLi[i]!!.ChildID == cnNo[j1]!!.ConnectionID) {//子ノード検索
+                            //親ノード内connectionNodeへ子ノード追加
                             cnNo[j]!!.ConnectionIDPointer!!.connectionNode.add(cnNo[j1]!!.ConnectionIDPointer)
                         }
                     }

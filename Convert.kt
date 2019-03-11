@@ -102,48 +102,27 @@ fun ConvertUCHARtofloat(arr:UByteArray?, offset:Int, outsize:Int):FloatArray {
 }
 
 fun nameComparison(name1: CharArray?, name2: CharArray?): Boolean {
-    //名前文字列に空白文字が有る場合,空白文字以前を取り除く
-    //空白は1個しかない
-    val name1Tmp = name1!!.copyOf()
-    var Ind1 = 0
-    var name1out: CharArray? = null
-    while (name1Tmp.size > Ind1 && name1Tmp[Ind1] != ' ') Ind1++
-    val end = name1Tmp.size - 1
-    var st = 0
-    if (name1Tmp.size > Ind1) {
-        st = Ind1 + 1
+    var stInd1 = 0
+    var stInd2 = 0
+    for (i in name1!!.size - 1 downTo 0) {
+        if (name1[i] == ' ') {
+            stInd1 = i + 1
+            break
+        }
     }
-    name1out = CharArray(name1Tmp.size - st)
-    var ind11 = 0
-    for (i in st..end) {
-        name1out[ind11++] = name1Tmp[i]
+    for (i in name2!!.size - 1 downTo 0) {
+        if (name2[i] == ' ') {
+            stInd2 = i + 1
+            break
+        }
     }
-
-    val name2Tmp = name2!!.copyOf()
-    var Ind2 = 0
-    var name2out: CharArray? = null
-    while (name2Tmp.size > Ind2 && name2Tmp[Ind2] != ' ') Ind2++
-    val end2 = name2Tmp.size - 1
-    var st2 = 0
-    if (name2Tmp.size > Ind2) {
-        st2 = Ind2 + 1
+    val n1 = name1.copyOfRange(stInd1, name1.size)
+    val n2 = name2.copyOfRange(stInd2, name2.size)
+    if (n1.size != n2.size) return false
+    for (i in 0 until n1.size) {
+        if (n1[i] != n2[i]) return false
     }
-    name2out = CharArray(name2Tmp.size - st2)
-    var ind21 = 0
-    for (i in st2..end2) {
-        name2out[ind21++] = name2Tmp[i]
-    }
-
-    //名前が一致してるか
-    val len1 = name1out.size
-    val len2 = name2out.size
-    if (len1 != len2) return false
-    var cnt = 0
-    for (i in 0..len1 - 1) {
-        if (name1out[i] == name2out[i]) cnt++
-    }
-    if (len1 == cnt) return true
-    return false
+    return true
 }
 
 fun nameComparison(name1: Array<Char?>, name2: String): Boolean {
